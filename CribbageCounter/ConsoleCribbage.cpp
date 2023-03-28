@@ -5,17 +5,22 @@
 #include <list>
 using namespace::std;
 
+//class representation of the cribbage board
+//keeps track of points and winner
 class Board {
 public:
     int playerPoints, computerPoints;
     bool playerDeal;
     
+    //constructor, default values of no points, randomly selects the first player
     Board() {
         playerPoints = 0;
         computerPoints = 0;
         playerDeal = (bool)(rand() % 2);
     }
 
+    //checks if the game is over (one player has at least 121 points)
+    //returns true if the game is over
     bool gameOver() {
         if (playerPoints >= 121) {
             playerPoints = 121;
@@ -28,6 +33,7 @@ public:
         return false;
     }
 
+    //returns a string representing if the computer or player has won, or if game is ongoing
     string winner() {
         if (gameOver()) {
             if (playerPoints > computerPoints) return "Congrats! You win!";
@@ -36,6 +42,7 @@ public:
         return "The game isn't over yet!";
     }
 
+    //returns a string representation of the number of points that each player has
     string toString() {
         string s = "Player: ";
         s += to_string(playerPoints);
@@ -45,11 +52,14 @@ public:
         return s;
     }
 
+    //advances which player's turn it is
     void advanceTurn() {
         playerDeal = !playerDeal;
     }
 };
 
+//enumberation for the suit of a card
+//includes 0, representing no suit present
 enum suit {
     NOSUIT = 0,
     HEARTS,
@@ -58,6 +68,10 @@ enum suit {
     DIAMONDS
 };
 
+//enumeration for the number/rank of a card
+//set in order to card number from 1-10
+//ace is low, jack = 11, queen = 12, king = 13
+//includes 0, representing no number present
 enum number {
     NONUMBER = 0,
     ONE = 1,
@@ -75,18 +89,22 @@ enum number {
     KING = 13
 };
 
+//struct representation of a card, defined by a suit and number
 struct card {
     suit s;
     number n;
 
+    //less than operator, only compares number
     bool operator<(card rhs) {
         return (*this).n < rhs.n;
     }
 
+    //greater than operator, only compares number
     bool operator>(card rhs) {
         return rhs < (*this);
     }
 
+    //equals operator, must be exact same card to match
     bool operator==(const card rhs) const{
         if ((*this).s != rhs.s) return false;
         if ((*this).n != rhs.n) return false;
@@ -94,6 +112,11 @@ struct card {
     }
 };
 
+//creates a card with the given suit and number
+//params:
+//  s the suit the card should be
+//  n the number the card should be
+//returns a card with the given suit and number
 card newCard(suit s, number n) {
     card c;
     c.s = s;
@@ -101,6 +124,9 @@ card newCard(suit s, number n) {
     return c;
 }
 /*
+//returns the best guess for what (enum) suit the card is, if failed, it will return NONUMBER
+//params:
+//  s the string to guess suit from
 suit getSuit(string s) {
     if (regex_search(s, regex("heart"))) return HEARTS;
     if (regex_search(s, regex("club"))) return CLUBS;//buggy
@@ -109,6 +135,9 @@ suit getSuit(string s) {
     return NOSUIT;
 }
 
+//returns the best guess for what (enum) number the card is, if failed, it will return NONUMBER
+//params:
+//  s the string to guess number from
 number getNumber(string s) {
     if (regex_search(s, regex("10"))) return (number)10;
     if (regex_search(s, regex("11"))) return (number)11;
@@ -144,6 +173,9 @@ number getNumber(string s) {
     return NONUMBER;
 }
 
+//returns a lowercase version of the provided string
+//params:
+//  s string to go to lowercase
 string toLowerString(string s) {
     int n = s.length();
     for (int i = 0; i < n; i++)
@@ -151,6 +183,8 @@ string toLowerString(string s) {
     return s;
 }
 
+//prompts the user to enter a string that is used to guess which card
+//the user is referencing, guarentees that the card returned will exist
 card getCard() {
     card c;
     c.n = NONUMBER;
@@ -166,6 +200,11 @@ card getCard() {
     return c;
 }
 */
+//creates an array from the stack
+//params:
+//  s the stack of cards to be added to the array
+//returns an array of cards containing all the cards in the stack s
+//returned array will be of length s.size()
 card* stackToArr(stack<card> s) {
     int j = s.size();
     card* ret = new card[j];
@@ -184,10 +223,17 @@ list<card> arr4ToList(card* arr) {
     return ret;
 }
 
+//class to represent the deck of cards, can draw cards and return all cards to the deck
+//This implementation works best when you do not need to draw all or most of the cards in the deck
+//Does not contain either joker
 class Deck {
 private: 
     list<card> drawnCards;
 
+    //checks if the given card has been drawn
+    //params:
+    //  card the card to check if has been drawn
+    //returns true if the card has been drawn
     bool isDrawn(card card) {
         auto iter = drawnCards.begin();
         while (iter != drawnCards.end()) {
@@ -197,8 +243,10 @@ private:
         return false;
     }
        
-//draws a single card
 public: 
+    //draws a card from the deck
+    //Warning: if 52 cards have been drawn, it will result in an infinite loop
+    //returns a random card from the deck
     card drawCard() {
         card c;
         do {
@@ -209,9 +257,8 @@ public:
         return c;
     }
       
-//draws n cards and returns them in an array
-//n > 0
-public: 
+    //draws n cards from the deck
+    //Warning: if there are fewer than n cards in the deck, it will result in an infinite loop
     card* drawCards(int n) {
         card* cards = new card[n];
         for (int i = 0; i < n; i++)
@@ -219,16 +266,29 @@ public:
         return cards;
     }
 
-//resets the deck
-public: void reset() {
-    drawnCards.clear();
-}
+    //returns the number of cards that have been drawn out of the deck
+    //There are 52 cards in the deck.
+    int numDrawn() {
+        return drawnCards.size();
+    }
+
+    //resets the deck, adding all drawn cards back to the deck
+    void reset() {
+        drawnCards.clear();
+    }
 };
 
+//returns the value of the card c (face cards count as 10)
+//params:
+//  c the card
+//returns the value of the card, less than or equal to 10
 int valueOf(card c) {
     return min((int)c.n, 10);
 }
 
+//returns a string representation of the given card
+//params:
+//  c the card to be represented as a string
 string cardToString(card c) {
     string ret = "";
     if (c.n == 1) ret += "Ace";
@@ -254,6 +314,12 @@ string cardToString(card c) {
     return ret;
 }
 
+//recursive helper method for calculating points from fifteen
+//params:
+//  cards stack of cards in the hand, can be in any order
+//  value the value (face cards count as 10) of cards already added to the total
+//        set as 0, must be less than 15
+//returns the number of points from fifteen that can be made from cards and the given total
 int recursivePointsFromFifteenSum(stack<card> cards, int val) {
     if (val == 15) return 2;
     if (val > 15) return 0;
@@ -263,6 +329,10 @@ int recursivePointsFromFifteenSum(stack<card> cards, int val) {
     return recursivePointsFromFifteenSum(cards, val) + recursivePointsFromFifteenSum(cards, val + i);
 }
 
+//returns the number of points from fifteen that the hand is worth
+//params:
+//  cards card array of length 5 representing the cards in the hand
+//returns the number of points from runs the hand is worth, by cribbage rules
 int pointsFromFifteenSum(card* cards) {
     stack<card> cardStack;
     for (int i = 0; i < 5; i++)
@@ -270,6 +340,10 @@ int pointsFromFifteenSum(card* cards) {
     return recursivePointsFromFifteenSum(cardStack, 0);
 }
 
+//returns the number of points from pairs that the hand is worth
+//params:
+//  cards card array of length 5 representing the cards in the hand
+//returns the number of points from runs the hand is worth, by cribbage rules
 int pointsFromPairs(card* cards) {
     int points = 0;
     for (int i = 0; i < 5; i++) {
@@ -279,6 +353,10 @@ int pointsFromPairs(card* cards) {
     return points;
 }
 
+//returns the number of points from nobs that the hand is worth
+//params:
+//  cards card array of length 5 representing the cards in the hand
+//returns the number of points from runs the hand is worth, by cribbage rules (0 or 1)
 int pointsFromNobs(card* cards) {
     for (int i = 1; i < 5; i++) {
         if (cards[i].n == JACK && cards[i].s == cards[0].s) return 1;
@@ -286,6 +364,10 @@ int pointsFromNobs(card* cards) {
     return 0;
 }
 
+//returns the number of points from flush that the hand is worth
+//params:
+//  cards card array of length 5 representing the cards in the hand
+//  isCrib bool representing if the set of cards is the crib
 int pointsFromFlush(card* cards, bool isCrib) {
     for (int i = 2; i < 5; i++) {
         if (cards[i].s != cards[1].s) return 0;
@@ -295,6 +377,10 @@ int pointsFromFlush(card* cards, bool isCrib) {
     return 0;
 }
 
+//returns the number of points from runs that the hand is worth
+//params:
+//  cards card array of length 5 representing the cards in the hand
+//returns the number of points from runs the hand is worth, by cribbage rules
 int pointsFromRun(card* cards) {
     int* quantity = new int[14];
     for (int i = 0; i < 14; i++) quantity[i] = 0;
@@ -316,6 +402,12 @@ int pointsFromRun(card* cards) {
     return 0;
 }
 
+//scores the number of points in the given hand
+//params:
+//  hand array of length five that represents the hand
+//       hand[0] is the cut card
+//  isCrib bool for if the current hand is the crib, only matters for flushes
+//returns the the number of points the hand is worth, by cribbage rules
 int getPoints(card* hand, bool isCrib) {//hand[0] is the cut card
     int points = 0;
     points += pointsFromFifteenSum(hand);
@@ -331,6 +423,12 @@ int getPoints(card* hand, bool isCrib) {//hand[0] is the cut card
     return points;
 }
 
+//scores the number of points in the given hand
+//params:
+//  hand array of length four that represents the hand
+//  cut the cut card
+//  isCrib bool for if the current hand is the crib, only matters for flushes
+//returns the the number of points the hand is worth, by cribbage rules
 int getPoints(card* hand, card cut, bool isCrib) {
     card* cards = new card[5];
     cards[0] = cut;
@@ -339,6 +437,11 @@ int getPoints(card* hand, card cut, bool isCrib) {
     return getPoints(cards, isCrib);
 }
 
+//helper method for scoreChoice() that gets the algorithm score for a set of cards to be discarded
+//params:
+//  discard card array of length two that represents the two cards discarded
+//  ownCrib bool representing if the crib points should be counted favorably
+//returns the int value of the algorithm score for the discarded cards, can be negative
 int discardValue(card* discard, bool ownCrib) {
     int score = 0;
 
@@ -350,10 +453,21 @@ int discardValue(card* discard, bool ownCrib) {
     return -1 * score;
 }
 
+//scores the given hand and discard combination
+//used by aiDiscard() algorithm to determine value of choices
+//params:
+//  hand card array of length 4 representing cards retained in the hand
+//  discard card array of length 2 representing the two cards discarded
+//  ownCrib bool representing if the crib points should be counted favorably
+//return int value representing the algorithm score of the given choice of cards
+//can be negative
 int scoreChoice(card* hand, card* discard, bool ownCrib) {
     return getPoints(hand, newCard(NOSUIT, NONUMBER), false) + discardValue(discard, ownCrib);
 }
 
+//returns the average value of cards in the given hand, face cards count as 10
+//params:
+//  hand card array of length 4
 double avgValue(card* hand) {
     double sum = 0;
     for (int i = 0; i < 4; i++)
@@ -361,8 +475,12 @@ double avgValue(card* hand) {
     return (sum / 4);
 }
 
-//returns bool array of length 6 with 2 slots being true
-//put any cards that are true into crib
+//prompts the player to select two cards to be discarded in the counting
+//params:
+//  cards array of length 6 of cards that are in the players hand
+//  playerDeal true if it is currently the player's deal (crib is hostile)
+//return bool array of length 6; will be all false except two true values,
+//the true values represent the two cards to be discarded into the crib
 bool* playerDiscard(card* hand, bool playerDeal) {
     cout << "Choose two cards to discard (two numbers in one line). ";
     if (playerDeal) cout << "You are the dealer";
@@ -394,8 +512,12 @@ read: for (int i = 0; i < 6; i++) ret[i] = false;
     return ret;
 }
 
-//returns bool array of length 6 with 2 slots being true
-//put any cards that are true into crib
+//automatically selects two cards to be discarded in the counting
+//params:
+//  cards array of length 6 of cards that are in the players hand
+//  playerDeal true if it is currently the player's deal (crib is hostile)
+//return bool array of length 6; will be all false except two true values,
+//the true values represent the two cards to be discarded into the crib
 bool* aiDiscard(card* cards, bool playerDeal) {
     bool debug = true;//debug options
     int bestI = 0, bestJ = 1, bestScore = INT16_MIN;
@@ -455,6 +577,11 @@ bool* aiDiscard(card* cards, bool playerDeal) {
     return ret;
 }
 
+//checks if any of the cards in the hand can be played in the running
+//params:
+//  hand list of cards in the player's hand
+//  total the current total of points in the running (0 - 30 inclusive)
+//returns true if a card can be played
 bool canPlayCard(list<card> hand, int total) {
     for (card c : hand) {
         if (valueOf(c) + total <= 31) return true;
@@ -462,6 +589,10 @@ bool canPlayCard(list<card> hand, int total) {
     return false;
 }
 
+//returns a string representation of a stack of cards from first played (bottom)
+//to last played (top)
+//empty string if no cards
+//Cards printed on one line, comma delimited
 string printStack(stack<card> cards) {
     if (cards.empty()) return "";
     stack<card> pushStack;
@@ -480,16 +611,11 @@ string printStack(stack<card> cards) {
     return s;
 }
 
-//returns the index of the first true
-//arr must be an array of length 14
-//index 0 is ignored
-//returns -1 if no true values
-int firstTrueIndex(bool* arr) {
-    for (int i = 0; i < 14; i++)
-        if (arr[i]) return i;
-    return -1;
-}
-
+//tallys the points earned from pairs by the last player to play a card in the running
+//params:
+//  history the stack of cards that has been played by all players
+//          with the most recent at the top of the stack
+//returns the number of points earned, will be positive or 0
 int runningPointsFromPairs(stack<card> history) {
     if (history.empty()) return 0;
     stack<card> pushStack;
@@ -516,11 +642,27 @@ int runningPointsFromPairs(stack<card> history) {
     return points;
 }
 
-//returns the first true index/card number that is not continous with the root
-//if the set is continuous, returns -1
-//set with indexes 0-13, root between 1 and 13, inclusive
-//ignores any value in set[0]
-//set[root] assumed true
+//returns the index of the first true
+//arr must be an array of length 14
+//index 0 is ignored
+//returns -1 if no true values
+int firstTrueIndex(bool* arr) {
+    for (int i = 0; i < 14; i++)
+        if (arr[i]) return i;
+    return -1;
+}
+
+//searches set, starting at index root, to find if there is a true value that is not continuous
+//with root.
+//example: root is 3
+// 1T, 2F, 3T, 4T, 5T, 6F, 7F, (etc. to 13)
+//Index 1 is noncontinuous because 2 is false and 2 is between 1 and 3 (root)
+//params:
+//  set an array of bools of size 14
+//      s`et[0] will be ignored, set[root] is assumed to be true
+//  root the index to search from, between 1 and 13 inclusive
+//returns the index of a true value that is not continuous with the root (1, 13 inclusive), OR 
+//        -1 if all trues are continuous
 int indexNoncontinuous(bool* set, int root) {
     //serach forwards
     int last = 14;
@@ -547,6 +689,11 @@ int indexNoncontinuous(bool* set, int root) {
     return -1;//continuous
 }
 
+//tallys the points earned for a run by the last player to play a card in the running
+//params:
+//  history the stack of cards that has been played by all players
+//          with the most recent at the top of the stack
+//returns the number of points earned, will be positive or 0
 int runningPointsFromRun(stack<card> history) {
     int rootNum = history.top().n;
     bool* presentSet = new bool[14];
@@ -597,6 +744,13 @@ int runningPointsFromRun(stack<card> history) {
     return count;
 }
 
+//prompts the player to select a card
+//Warning: one of the cards in the hand must be playable! Failure will result infinite loop
+//params:
+//  hand the list of cards that the player has in hand
+//  history the stack of cards that has been played by all players 
+//          with the most recent at the top of the stack
+//  total the count that the running has reached, 0-31 inclusive
 //returns the card to be played in the running
 card playerRunningCardSelector(list<card> hand, stack<card> history, int total) {
     if (!history.empty()) 
@@ -633,6 +787,13 @@ read: int out = 0;
     goto read;
 }
 
+//automatically selects a card to be played in the running (DEBUG: currently just routes to player card selector) TODO!
+//Warning: one of the cards in the hand must be playable! Failure will result infinite loop
+//params:
+//  hand the list of cards that the player has in hand
+//  history the stack of cards that has been played by all players 
+//          with the most recent at the top of the stack
+//  total the count that the running has reached, 0-31 inclusive
 //returns the card to be played in the running
 card aiRunningCardSelector(list<card> hand, stack<card> history, int total) {
     cout << "***AI_RUNNING_CARD_SELECTOR***\n";
@@ -641,6 +802,7 @@ card aiRunningCardSelector(list<card> hand, stack<card> history, int total) {
     return ret;
 }
 
+//plays a game of cribbage against the computer on the console
 void playGame() {
     Board board;
     Deck deck;
@@ -868,6 +1030,7 @@ endgame: cout << "\n";
     cout << "\n\n\n";
 }
 
+//Play cribbage on the console against the computer
 int main()
 {
     srand(time(NULL));//necessary
