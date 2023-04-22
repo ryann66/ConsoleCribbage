@@ -5,6 +5,9 @@
 #include <list>
 using namespace::std;
 
+#define DEFAULT_COLOR "\033[m"
+#define ACCENT_COLOR "\033[31m"
+
 //class representation of the cribbage board
 //keeps track of points and winner
 class Board {
@@ -123,90 +126,14 @@ card newCard(suit s, number n) {
     c.n = n;
     return c;
 }
-/*
-//returns the best guess for what (enum) suit the card is, if failed, it will return NONUMBER
-//params:
-//  s the string to guess suit from
-suit getSuit(string s) {
-    if (regex_search(s, regex("heart"))) return HEARTS;
-    if (regex_search(s, regex("club"))) return CLUBS;//buggy
-    if (regex_search(s, regex("diamond"))) return DIAMONDS;
-    if (regex_search(s, regex("spade"))) return SPADES;
-    return NOSUIT;
-}
 
-//returns the best guess for what (enum) number the card is, if failed, it will return NONUMBER
-//params:
-//  s the string to guess number from
-number getNumber(string s) {
-    if (regex_search(s, regex("10"))) return (number)10;
-    if (regex_search(s, regex("11"))) return (number)11;
-    if (regex_search(s, regex("12"))) return (number)12;
-    if (regex_search(s, regex("13")))return (number)13;
-    if (regex_search(s, regex("1"))) return (number)1;
-    if (regex_search(s, regex("2"))) return (number)2;
-    if (regex_search(s, regex("3"))) return (number)3;
-    if (regex_search(s, regex("4"))) return (number)4;
-    if (regex_search(s, regex("5"))) return (number)5;
-    if (regex_search(s, regex("6"))) return (number)6;
-    if (regex_search(s, regex("7"))) return (number)7;
-    if (regex_search(s, regex("8"))) return (number)8;
-    if (regex_search(s, regex("9"))) return (number)9;
-    if (regex_search(s, regex("ace"))) return (number)1;
-    if (regex_search(s, regex("ten"))) return (number)10;
-    if (regex_search(s, regex("jack"))) return (number)11;
-    if (regex_search(s, regex("queen"))) return (number)12;
-    if (regex_search(s, regex("king"))) return (number)13;
-    if (regex_search(s, regex("one"))) return (number) 1;
-    if (regex_search(s, regex("two"))) return (number)2;
-    if (regex_search(s, regex("three"))) return (number)3;
-    if (regex_search(s, regex("four"))) return (number)4;
-    if (regex_search(s, regex("five"))) return (number)5;
-    if (regex_search(s, regex("six"))) return (number)6;
-    if (regex_search(s, regex("seven"))) return (number)7;
-    if (regex_search(s, regex("eight"))) return (number)8;
-    if (regex_search(s, regex("nine"))) return (number)9;
-    if (regex_search(s, regex("j"))) return (number)11;
-    if (regex_search(s, regex("q"))) return (number)12;
-    if (regex_search(s, regex("k"))) return (number)13;
-    if (regex_search(s, regex("a"))) return (number)1;
-    return NONUMBER;
-}
-
-//returns a lowercase version of the provided string
-//params:
-//  s string to go to lowercase
-string toLowerString(string s) {
-    int n = s.length();
-    for (int i = 0; i < n; i++)
-        s[i] = tolower(s[i]);
-    return s;
-}
-
-//prompts the user to enter a string that is used to guess which card
-//the user is referencing, guarentees that the card returned will exist
-card getCard() {
-    card c;
-    c.n = NONUMBER;
-    c.s = NOSUIT;
-    string s;
-    do {
-        getline(cin, s);
-        s = toLowerString(s);
-        c.n = getNumber(s);
-        c.s = getSuit(s);
-        cout << "\n";
-    } while (c.n == NONUMBER || c.s == NOSUIT);
-    return c;
-}
-*/
 //creates an array from the stack
 //params:
 //  s the stack of cards to be added to the array
 //returns an array of cards containing all the cards in the stack s
 //returned array will be of length s.size()
 card* stackToArr(stack<card> s) {
-    int j = s.size();
+    int j = (int)s.size();
     card* ret = new card[j];
     for (int i = 0; i < j; i++) {
         ret[i] = s.top();
@@ -269,7 +196,7 @@ public:
     //returns the number of cards that have been drawn out of the deck
     //There are 52 cards in the deck.
     int numDrawn() {
-        return drawnCards.size();
+        return (int)drawnCards.size();
     }
 
     //resets the deck, adding all drawn cards back to the deck
@@ -519,7 +446,6 @@ read: for (int i = 0; i < 6; i++) ret[i] = false;
 //return bool array of length 6; will be all false except two true values,
 //the true values represent the two cards to be discarded into the crib
 bool* aiDiscard(card* cards, bool playerDeal) {
-    bool debug = true;//debug options
     int bestI = 0, bestJ = 1, bestScore = INT16_MIN;
     double bestAvgValue = 14;
     int score;
@@ -537,12 +463,6 @@ bool* aiDiscard(card* cards, bool playerDeal) {
                 f++;
             }
             score = scoreChoice(hand, discard, ownCrib);
-            if (debug) {
-                cout << "Scored " << (i + 1);
-                cout << ", " << (j + 1);
-                cout << " at " << score;
-                cout << " points\n";
-            }
             if (score >= bestScore) {
                 double newAvgValue = avgValue(hand);
                 if (score > bestScore || newAvgValue < bestAvgValue) {//if new set is better or has lower number cards
@@ -558,22 +478,7 @@ bool* aiDiscard(card* cards, bool playerDeal) {
     for (int i = 0; i < 6; i++) ret[i] = false;
     ret[bestI] = true;
     ret[bestJ] = true;
-
-    if (debug) {
-        cout << "Cards:\n";
-        for (int i = 0; i < 6; i++) {
-            cout << (i + 1);
-            cout << ". " << cardToString(cards[i]) << "\n";
-        }
-        cout << "\n";
-        cout << "Selected cards: " << (bestI + 1);
-        cout << ", " << (bestJ + 1);
-        cout << "\n";
-        cout << "Algorithm score " << bestScore;
-        cout << "\n";
-    }
-
-    cout << "Computer cards selected\n\n";
+    cout << "\nComputer cards selected\n\n";
     return ret;
 }
 
@@ -706,7 +611,7 @@ int runningPointsFromRun(stack<card> history) {
         pushStack.push(history.top());
         history.pop();
     }
-    int depth = pushStack.size();//num cards back to search (1 <= n <= history.size())
+    int depth = (int)pushStack.size();//num cards back to search (1 <= n <= history.size())
     while (!pushStack.empty()) {
         //push back onto history
         history.push(pushStack.top());
@@ -796,10 +701,25 @@ read: int out = 0;
 //  total the count that the running has reached, 0-31 inclusive
 //returns the card to be played in the running
 card aiRunningCardSelector(list<card> hand, stack<card> history, int total) {
-    cout << "***AI_RUNNING_CARD_SELECTOR***\n";
-    card ret = playerRunningCardSelector(hand, history, total);//temp solution for debug purposes
-    cout << "***END_AI_RUNNING_CARD_SELECTOR***\n";
-    return ret;
+    card bestCard = newCard(NOSUIT, NONUMBER);
+    int bestValue = INT16_MIN;
+
+    for (card c : hand) {
+        if (total + valueOf(c) == 31) return c;
+        else if (total + valueOf(c) > 31) continue;
+        int value = 0;
+        if (total + valueOf(c) == 15) value += 2;
+        history.push(c);
+        value += runningPointsFromPairs(history);
+        value += runningPointsFromRun(history);
+        history.pop();
+        if (value > bestValue) {
+            bestCard = c;
+            bestValue = value;
+        }
+    }
+    if (bestValue == -1) return *(hand.begin());
+    return bestCard;
 }
 
 //plays a game of cribbage against the computer on the console
@@ -817,7 +737,7 @@ void playGame() {
             computerCards[i] = temp[2 * i + (int)(!(board.playerDeal))];
         }
         cut = temp[12];
-        delete(temp);
+        delete[] temp;
 
         //discard cards
         int count = 0;
@@ -835,7 +755,7 @@ void playGame() {
                 count++;
             }
         }
-        delete(playerCards);
+        delete[] playerCards;
         playerCards = temp;
         delete(discardCards);
         count = 0;
@@ -851,7 +771,7 @@ void playGame() {
                 count++;
             }
         }
-        delete(computerCards);
+        delete[] computerCards;
         computerCards = temp;
         delete(discardCards);
 
@@ -872,6 +792,9 @@ void playGame() {
         cout << "\n";
 
         //running
+        cout << ACCENT_COLOR;
+        cout << "Starting the Running\n\n";
+        cout << DEFAULT_COLOR;
         stack<card> history;
         list<card> playerCardsList = arr4ToList(playerCards);
         list<card> computerCardsList = arr4ToList(computerCards);
@@ -880,9 +803,9 @@ void playGame() {
         bool playerTurn = !board.playerDeal;
         bool playerLastCard = true;
         goto start;
-
     newTotal: total = 0;
         playerTurn = !playerLastCard;
+        cout << "New total: 0\n\n";
         while (!history.empty()) history.pop();//clear history
     start:
         if (!(playerCardsList.empty() && computerCardsList.empty())) {//if neither party could play because no cards, end running
@@ -968,6 +891,7 @@ void playGame() {
                 }
                 cout << "Total: " << total;
                 cout << "\n";
+                if (playerLastCard) cout << "\n";
                 if (total == 31) {
                     if (playerLastCard) {
                         cout << "Player: ";
@@ -986,7 +910,9 @@ void playGame() {
         }
 
         //counting
+        cout << ACCENT_COLOR;
         cout << "\nCounting:\n";
+        cout << DEFAULT_COLOR;
         int holder;
         if (board.playerDeal) {
             holder = getPoints(computerCards, cut, false);
@@ -1021,7 +947,8 @@ void playGame() {
             board.computerPoints += holder;
         }
         if (board.gameOver()) goto endgame;
-        cout << "\n\nEnd of turn\n" << board.toString() << "\n";
+        cout << ACCENT_COLOR;
+        cout << "\n\nEnd of turn\n" << DEFAULT_COLOR << board.toString() << "\n";
         board.advanceTurn();
     }
 endgame: cout << "\n";
@@ -1033,17 +960,7 @@ endgame: cout << "\n";
 //Play cribbage on the console against the computer
 int main()
 {
-    srand(time(NULL));//necessary
-
-    Deck deck;
-    for (int i = 0; i < 10; i++) {
-        card* hand = deck.drawCards(6);
-        aiDiscard(hand, true);
-        deck.reset();
-    }
-    
-    //playGame();
+    cout << DEFAULT_COLOR;
+    srand((unsigned int)time(NULL));
+    playGame();
 }
-//TODO LIST
-//1) ai card selector (testing)
-//2) ai running card selector
