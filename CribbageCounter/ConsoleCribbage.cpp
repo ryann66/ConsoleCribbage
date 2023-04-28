@@ -1035,15 +1035,6 @@ int main()
 {
     srand(time(NULL));//necessary
 
-    Deck deck;
-    for (int i = 0; i < 10; i++) {
-        card* hand = deck.drawCards(6);
-        aiDiscard(hand, true);
-        deck.reset();
-    }
     
-    //playGame();
+    playGame();
 }
-//TODO LIST
-//1) ai card selector (testing)
-//2) ai running card selector
