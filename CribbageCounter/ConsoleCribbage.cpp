@@ -963,12 +963,4 @@ int main()
     cout << DEFAULT_COLOR;
     srand((unsigned int)time(NULL));
     playGame();
-}        aiDiscard(hand, true);
-        deck.reset();
-    }
-    
-    //playGame();
 }
-//TODO LIST
-//1) ai card selector (testing)
-//2) ai running card selector
