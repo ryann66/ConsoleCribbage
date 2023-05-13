@@ -5,8 +5,9 @@
 #include <list>
 using namespace::std;
 
-#define DEFAULT_COLOR "\033[m"
-#define ACCENT_COLOR "\033[31m"
+//Ansi sequences not recognized by default windows terminal
+#define DEFAULT_COLOR ""//"\033[m"
+#define ACCENT_COLOR ""//"\033[31m"
 
 //class representation of the cribbage board
 //keeps track of points and winner
