@@ -1,65 +1,129 @@
-#include <iostream>
-#include <regex>
-#include <string>
+#include <stdio.h>
+#include <wchar.h>
+#include <Windows.h>
+
+#include<regex>
 #include <stack>
 #include <list>
+#include <string>
+#include <iostream>
+
 using namespace::std;
 
-#define DEFAULT_COLOR "\033[m"
-#define ACCENT_COLOR "\033[31m"
+//console definitions
+#define ESC "\x1b"
+#define CSI "\x1b["
+//gameplay definitions
+#define MAX_POINTS 121
+//rendering/graphics definitions
 
-//class representation of the cribbage board
-//keeps track of points and winner
-class Board {
-public:
-    int playerPoints, computerPoints;
-    bool playerDeal;
-    
-    //constructor, default values of no points, randomly selects the first player
-    Board() {
-        playerPoints = 0;
-        computerPoints = 0;
-        playerDeal = (bool)(rand() % 2);
-    }
+//helpful documentation on Windows console:
+//  https://learn.microsoft.com/en-us/windows/console
 
-    //checks if the game is over (one player has at least 121 points)
-    //returns true if the game is over
-    bool gameOver() {
-        if (playerPoints >= 121) {
-            playerPoints = 121;
-            return true;
-        }
-        if (computerPoints >= 121) {
-            computerPoints = 121;
-            return true;
-        }
+//hides user input from the user, pretending it didn't happen
+bool DisableInput() {
+    HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+    if (hIn == INVALID_HANDLE_VALUE) {
         return false;
     }
 
-    //returns a string representing if the computer or player has won, or if game is ongoing
-    string winner() {
-        if (gameOver()) {
-            if (playerPoints > computerPoints) return "Congrats! You win!";
-            return "Sorry, you lose.";
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hIn, &dwMode)) {
+        return false;
+    }
+
+    if (dwMode & ENABLE_ECHO_INPUT) {
+        dwMode ^= ENABLE_ECHO_INPUT;
+        if (!SetConsoleMode(hIn, dwMode)) {
+            return false;
         }
-        return "The game isn't over yet!";
+    }
+    return true;
+}
+
+//enables user input, deletes any past unread input
+bool EnableInput() {
+    HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+    if (hIn == INVALID_HANDLE_VALUE) {
+        return false;
     }
 
-    //returns a string representation of the number of points that each player has
-    string toString() {
-        string s = "Player: ";
-        s += to_string(playerPoints);
-        s += "\nComputer: ";
-        s += to_string(computerPoints);
-        s += "\n\n";
-        return s;
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hIn, &dwMode)) {
+        return false;
     }
 
-    //advances which player's turn it is
-    void advanceTurn() {
-        playerDeal = !playerDeal;
+    if (!(dwMode & ENABLE_ECHO_INPUT)) {
+        dwMode |= ENABLE_ECHO_INPUT;
+        if (!SetConsoleMode(hIn, dwMode)) {
+            return false;
+        }
     }
-};
+    cin.clear();
+    return true;
+}
+
+//sets the buffer to fill the window
+//returns the size of the window
+COORD ResizeConsole() {
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    // retrieve screen buffer info
+    CONSOLE_SCREEN_BUFFER_INFO scrBufferInfo;
+    GetConsoleScreenBufferInfo(hOut, &scrBufferInfo);
+
+    // current window size
+    short winWidth = scrBufferInfo.srWindow.Right - scrBufferInfo.srWindow.Left + 1;
+    short winHeight = scrBufferInfo.srWindow.Bottom - scrBufferInfo.srWindow.Top + 1;
+
+    // current screen buffer size
+    short scrBufferWidth = scrBufferInfo.dwSize.X;
+    short scrBufferHeight = scrBufferInfo.dwSize.Y;
+
+    // to remove the scrollbar, make sure the window height matches the screen buffer height
+    COORD newSize;
+    newSize.X = scrBufferWidth;
+    newSize.Y = winHeight;
+
+    // set the new screen buffer dimensions and return the size of the window (regardless of success)
+    if (SetConsoleScreenBufferSize(hOut, newSize)) {
+        newSize.X = winWidth;
+        newSize.Y = winHeight;
+    }
+    return newSize;
+}
+
+//formats the console correctly
+//enables escape sequences
+//removes the scroll bar
+//returns false if setup failure
+bool InitialConsoleSetup()
+{
+    // Set output mode to handle virtual terminal sequences
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE)
+    {
+        return false;
+    }
+
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hOut, &dwMode))
+    {
+        return false;
+    }
+
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    if (!SetConsoleMode(hOut, dwMode))
+    {
+        return false;
+    }
+
+    ResizeConsole();
+
+    DisableInput();
+
+    return true;
+}
 
 //enumberation for the suit of a card
 //includes 0, representing no suit present
@@ -97,6 +161,13 @@ struct card {
     suit s;
     number n;
 
+    card() : s(NOSUIT), n(NONUMBER) {}
+
+    card(suit s, number n) {
+        this->s = s;
+        this->n = n;
+    }
+
     //less than operator, only compares number
     bool operator<(card rhs) {
         return (*this).n < rhs.n;
@@ -108,100 +179,10 @@ struct card {
     }
 
     //equals operator, must be exact same card to match
-    bool operator==(const card rhs) const{
+    bool operator==(const card rhs) const {
         if ((*this).s != rhs.s) return false;
         if ((*this).n != rhs.n) return false;
         return true;
-    }
-};
-
-//creates a card with the given suit and number
-//params:
-//  s the suit the card should be
-//  n the number the card should be
-//returns a card with the given suit and number
-card newCard(suit s, number n) {
-    card c;
-    c.s = s;
-    c.n = n;
-    return c;
-}
-
-//creates an array from the stack
-//params:
-//  s the stack of cards to be added to the array
-//returns an array of cards containing all the cards in the stack s
-//returned array will be of length s.size()
-card* stackToArr(stack<card> s) {
-    int j = (int)s.size();
-    card* ret = new card[j];
-    for (int i = 0; i < j; i++) {
-        ret[i] = s.top();
-        s.pop();
-    }
-    return ret;
-}
-
-//only use with arrays of length four
-list<card> arr4ToList(card* arr) {
-    list<card> ret;
-    for (int i = 0; i < 4; i++)
-        ret.push_back(arr[i]);
-    return ret;
-}
-
-//class to represent the deck of cards, can draw cards and return all cards to the deck
-//This implementation works best when you do not need to draw all or most of the cards in the deck
-//Does not contain either joker
-class Deck {
-private: 
-    list<card> drawnCards;
-
-    //checks if the given card has been drawn
-    //params:
-    //  card the card to check if has been drawn
-    //returns true if the card has been drawn
-    bool isDrawn(card card) {
-        auto iter = drawnCards.begin();
-        while (iter != drawnCards.end()) {
-            if ((*iter).n == card.n && (*iter).s == card.s) return true;
-            iter++;
-        }
-        return false;
-    }
-       
-public: 
-    //draws a card from the deck
-    //Warning: if 52 cards have been drawn, it will result in an infinite loop
-    //returns a random card from the deck
-    card drawCard() {
-        card c;
-        do {
-            c.n = (number)((rand() % 13) + 1);
-            c.s = (suit)((rand() % 4) + 1);
-        } while (isDrawn(c));
-        drawnCards.push_back(c);
-        return c;
-    }
-      
-    //draws n cards from the deck
-    //Warning: if there are fewer than n cards in the deck, it will result in an infinite loop
-    card* drawCards(int n) {
-        card* cards = new card[n];
-        for (int i = 0; i < n; i++)
-            cards[i] = drawCard();
-        return cards;
-    }
-
-    //returns the number of cards that have been drawn out of the deck
-    //There are 52 cards in the deck.
-    int numDrawn() {
-        return (int)drawnCards.size();
-    }
-
-    //resets the deck, adding all drawn cards back to the deck
-    void reset() {
-        drawnCards.clear();
     }
 };
 
@@ -240,6 +221,150 @@ string cardToString(card c) {
     else ret += "No suit";
     return ret;
 }
+
+//creates an array from the stack
+//params:
+//  s the stack of cards to be added to the array
+//returns an array of cards containing all the cards in the stack s
+//returned array will be of length s.size()
+card* stackToArr(stack<card> s) {
+    int j = (int)s.size();
+    card* ret = new card[j];
+    for (int i = 0; i < j; i++) {
+        ret[i] = s.top();
+        s.pop();
+    }
+    return ret;
+}
+
+//only use with arrays of length four
+list<card> arr4ToList(card* arr) {
+    list<card> ret;
+    for (int i = 0; i < 4; i++)
+        ret.push_back(arr[i]);
+    return ret;
+}
+
+//class to represent the deck of cards, can draw cards and return all cards to the deck
+//This implementation works best when you do not need to draw all or most of the cards in the deck
+//Does not contain either joker
+class Deck {
+private:
+    list<card> drawnCards;
+
+    //checks if the given card has been drawn
+    //params:
+    //  card the card to check if has been drawn
+    //returns true if the card has been drawn
+    bool isDrawn(card card) {
+        auto iter = drawnCards.begin();
+        while (iter != drawnCards.end()) {
+            if ((*iter).n == card.n && (*iter).s == card.s) return true;
+            iter++;
+        }
+        return false;
+    }
+
+public:
+    //draws a card from the deck
+    //Warning: if 52 cards have been drawn, it will result in an infinite loop
+    //returns a random card from the deck
+    card drawCard() {
+        card c;
+        do {
+            c.n = (number)((rand() % 13) + 1);
+            c.s = (suit)((rand() % 4) + 1);
+        } while (isDrawn(c));
+        drawnCards.push_back(c);
+        return c;
+    }
+
+    //draws n cards from the deck
+    //Warning: if there are fewer than n cards in the deck, it will result in an infinite loop
+    card* drawCards(int n) {
+        card* cards = new card[n];
+        for (int i = 0; i < n; i++)
+            cards[i] = drawCard();
+        return cards;
+    }
+
+    //returns the number of cards that have been drawn out of the deck
+    //There are 52 cards in the deck.
+    int numDrawn() {
+        return (int)drawnCards.size();
+    }
+
+    //resets the deck, adding all drawn cards back to the deck
+    void reset() {
+        drawnCards.clear();
+    }
+};
+
+//class representation of the cribbage board
+//keeps track of points and winner
+class Board {
+private:
+    int playerPoints, computerPoints;
+    bool playerDeal;
+
+public:
+    //constructor, default values of no points, randomly selects the first player
+    Board() {
+        playerPoints = 0;
+        computerPoints = 0;
+        playerDeal = (bool)(rand() % 2);
+    }
+
+    bool playerDeal() {
+        return playerDeal;
+    }
+
+    int getPlayerPoints() {
+        return playerPoints;
+    }
+
+    int getComputerPoints() {
+        return computerPoints;
+    }
+
+    //adds the points to the player, returns true if game over
+    bool givePlayerPoints(int points) {
+        playerPoints += points;
+        if (playerPoints >= MAX_POINTS) {
+            playerPoints = MAX_POINTS;
+            return true;
+        }
+        return false;
+    }
+
+    bool giveComputerPoints(int points) {
+        computerPoints += points;
+        if (computerPoints >= MAX_POINTS) {
+            computerPoints = MAX_POINTS;
+            return true;
+        }
+        return false;
+    }
+
+    //checks if the game is over (one player has at least MAX_POINTS points)
+    //returns true if the game is over
+    bool gameOver() {
+        return playerPoints >= MAX_POINTS || computerPoints >= MAX_POINTS;
+    }
+
+    //returns true if the player has won
+    //assumes the player surrendered if the game is not over
+    //logic: computer never gives up. EVER. haha
+    bool playerWin() {
+        if (gameOver() && playerPoints > computerPoints) return true;
+        return false;
+    }
+
+    //advances which player's turn it is
+    void advanceTurn() {
+        playerDeal = !playerDeal;
+    }
+};
 
 //recursive helper method for calculating points from fifteen
 //params:
@@ -300,7 +425,7 @@ int pointsFromFlush(card* cards, bool isCrib) {
         if (cards[i].s != cards[1].s) return 0;
     }
     if (cards[0].s == cards[1].s) return 5;
-    if(!isCrib) return 4;
+    if (!isCrib) return 4;
     return 0;
 }
 
@@ -389,7 +514,7 @@ int discardValue(card* discard, bool ownCrib) {
 //return int value representing the algorithm score of the given choice of cards
 //can be negative
 int scoreChoice(card* hand, card* discard, bool ownCrib) {
-    return getPoints(hand, newCard(NOSUIT, NONUMBER), false) + discardValue(discard, ownCrib);
+    return getPoints(hand, card(), false) + discardValue(discard, ownCrib);
 }
 
 //returns the average value of cards in the given hand, face cards count as 10
@@ -409,34 +534,35 @@ double avgValue(card* hand) {
 //return bool array of length 6; will be all false except two true values,
 //the true values represent the two cards to be discarded into the crib
 bool* playerDiscard(card* hand, bool playerDeal) {
-    cout << "Choose two cards to discard (two numbers in one line). ";
-    if (playerDeal) cout << "You are the dealer";
-    else cout << "You are not the dealer";
-    cout << "\n";
-    for (int i = 0; i < 6; i++) {
-        cout << (i + 1);
-        cout << ". " << cardToString(hand[i]) << "\n";
-    }
-    //read two numbers between 1-6, inclusive
-    string s;
-    bool* ret = new bool[6];
-read: for (int i = 0; i < 6; i++) ret[i] = false;
-    getline(cin, s);
-    for (int i = 0; i < s.length(); i++) {
-        if (s[i] == '1') ret[0] = true;
-        else if (s[i] == '2') ret[1] = true;
-        else if (s[i] == '3') ret[2] = true;
-        else if (s[i] == '4') ret[3] = true;
-        else if (s[i] == '5') ret[4] = true;
-        else if (s[i] == '6') ret[5] = true;
-    }
-    int i = 0;
-    for (int j = 0; j < 6; j++) i += (int)ret[j];
-    if (i != 2) {
-        cout << "Invalid response. Try entering two numbers like this (1,2)\n";
-        goto read;
-    }
-    return ret;
+    return NULL;//TODO
+//    cout << "Choose two cards to discard (two numbers in one line). ";
+//    if (playerDeal) cout << "You are the dealer";
+//    else cout << "You are not the dealer";
+//    cout << "\n";
+//    for (int i = 0; i < 6; i++) {
+//        cout << (i + 1);
+//        cout << ". " << cardToString(hand[i]) << "\n";
+//    }
+//    //read two numbers between 1-6, inclusive
+//    string s;
+//    bool* ret = new bool[6];
+//read: for (int i = 0; i < 6; i++) ret[i] = false;
+//    getline(cin, s);
+//    for (int i = 0; i < s.length(); i++) {
+//        if (s[i] == '1') ret[0] = true;
+//        else if (s[i] == '2') ret[1] = true;
+//        else if (s[i] == '3') ret[2] = true;
+//        else if (s[i] == '4') ret[3] = true;
+//        else if (s[i] == '5') ret[4] = true;
+//        else if (s[i] == '6') ret[5] = true;
+//    }
+//    int i = 0;
+//    for (int j = 0; j < 6; j++) i += (int)ret[j];
+//    if (i != 2) {
+//        cout << "Invalid response. Try entering two numbers like this (1,2)\n";
+//        goto read;
+//    }
+//    return ret;
 }
 
 //automatically selects two cards to be discarded in the counting
@@ -492,28 +618,6 @@ bool canPlayCard(list<card> hand, int total) {
         if (valueOf(c) + total <= 31) return true;
     }
     return false;
-}
-
-//returns a string representation of a stack of cards from first played (bottom)
-//to last played (top)
-//empty string if no cards
-//Cards printed on one line, comma delimited
-string printStack(stack<card> cards) {
-    if (cards.empty()) return "";
-    stack<card> pushStack;
-    while (!cards.empty()) {
-        pushStack.push(cards.top());
-        cards.pop();
-    }
-    string s = "";
-    while (true) {
-        s += cardToString(pushStack.top());
-        cards.push(pushStack.top());
-        pushStack.pop();
-        if (!pushStack.empty()) s += ", ";
-        else break;
-    }
-    return s;
 }
 
 //tallys the points earned from pairs by the last player to play a card in the running
@@ -602,7 +706,7 @@ int indexNoncontinuous(bool* set, int root) {
 int runningPointsFromRun(stack<card> history) {
     int rootNum = history.top().n;
     bool* presentSet = new bool[14];
-    for (int i = 0; i < 14;i++)
+    for (int i = 0; i < 14; i++)
         presentSet[i] = false;
     stack<card> pushStack;
     while (!history.empty()) {
@@ -617,14 +721,14 @@ int runningPointsFromRun(stack<card> history) {
         history.push(pushStack.top());
         pushStack.pop();
     }
-    
+
     //initial set of valid cards present in valid history;
     //while set is noncontinuous, trim first noncontinuous card off and recompute
     int cont;
-    while(true) {
+    while (true) {
         cont = indexNoncontinuous(presentSet, rootNum);
         if (cont == -1) break;//if continuous
-        for (int i = 0; i < 14;i++)//reset presentSet
+        for (int i = 0; i < 14; i++)//reset presentSet
             presentSet[i] = false;
         while (!history.empty()) {
             if (history.top().n == cont) break;//stopper hit
@@ -658,38 +762,39 @@ int runningPointsFromRun(stack<card> history) {
 //  total the count that the running has reached, 0-31 inclusive
 //returns the card to be played in the running
 card playerRunningCardSelector(list<card> hand, stack<card> history, int total) {
-    if (!history.empty()) 
-        cout << "\nHistory:\n" << printStack(history) << "\n\n";
-    cout << "Choose one card to play:\n";
-    int i = 1;
-    for (card c : hand) {
-        cout << i;
-        cout << ". " << cardToString(c) << "\n";
-        i++;
-    }
-read: int out = 0;
-    string s;
-    getline(cin, s);
-    for (int j = 0; j < s.length(); j++) {
-        if (s[j] == '1') out = out * 10 + 1;
-        if (s[j] == '2') out = out * 10 + 2;
-        if (s[j] == '3') out = out * 10 + 3;
-        if (s[j] == '4') out = out * 10 + 4;
-    }
-    i = 1;
-    for (card c : hand) {//get selected card and test is valid
-        if (out == i) {
-            if (valueOf(c) + total > 31) {
-                cout << "Card too large, try a different card!\n";
-                goto read;
-            }
-            return c;
-        }
-        i++;
-    }
-    cout << "Invalid response. Try entering a number between 1 and " << hand.size();//failed to find card
-    cout << "\n";
-    goto read;
+    return card();//TODO
+//    if (!history.empty())
+//        cout << "\nHistory:\n" << printStack(history) << "\n\n";
+//    cout << "Choose one card to play:\n";
+//    int i = 1;
+//    for (card c : hand) {
+//        cout << i;
+//        cout << ". " << cardToString(c) << "\n";
+//        i++;
+//    }
+//read: int out = 0;
+//    string s;
+//    getline(cin, s);
+//    for (int j = 0; j < s.length(); j++) {
+//        if (s[j] == '1') out = out * 10 + 1;
+//        if (s[j] == '2') out = out * 10 + 2;
+//        if (s[j] == '3') out = out * 10 + 3;
+//        if (s[j] == '4') out = out * 10 + 4;
+//    }
+//    i = 1;
+//    for (card c : hand) {//get selected card and test is valid
+//        if (out == i) {
+//            if (valueOf(c) + total > 31) {
+//                cout << "Card too large, try a different card!\n";
+//                goto read;
+//            }
+//            return c;
+//        }
+//        i++;
+//    }
+//    cout << "Invalid response. Try entering a number between 1 and " << hand.size();//failed to find card
+//    cout << "\n";
+//    goto read;
 }
 
 //automatically selects a card to be played in the running (DEBUG: currently just routes to player card selector) TODO!
@@ -701,7 +806,7 @@ read: int out = 0;
 //  total the count that the running has reached, 0-31 inclusive
 //returns the card to be played in the running
 card aiRunningCardSelector(list<card> hand, stack<card> history, int total) {
-    card bestCard = newCard(NOSUIT, NONUMBER);
+    card bestCard = card();
     int bestValue = INT16_MIN;
 
     for (card c : hand) {
@@ -723,244 +828,253 @@ card aiRunningCardSelector(list<card> hand, stack<card> history, int total) {
 }
 
 //plays a game of cribbage against the computer on the console
-void playGame() {
-    Board board;
-    Deck deck;
-    while (true) {//turn loop
-        //draw cards
-        card* playerCards = new card[6];
-        card* computerCards = new card[6];
-        card cut;
-        card* temp = deck.drawCards(13);
-        for (int i = 0; i < 6; i++) {
-            playerCards[i] = temp[2 * i + (int)board.playerDeal];
-            computerCards[i] = temp[2 * i + (int)(!(board.playerDeal))];
-        }
-        cut = temp[12];
-        delete[] temp;
-
-        //discard cards
-        int count = 0;
-        int cribCount = 0;
-        bool* discardCards = playerDiscard(playerCards, board.playerDeal);
-        temp = new card[4];
-        card* crib = new card[4];
-        for (int i = 0; i < 6; i++) {
-            if (discardCards[i]) {
-                crib[cribCount] = playerCards[i];
-                cribCount++;
-            }
-            else {
-                temp[count] = playerCards[i];
-                count++;
-            }
-        }
-        delete[] playerCards;
-        playerCards = temp;
-        delete(discardCards);
-        count = 0;
-        discardCards = aiDiscard(computerCards, board.playerDeal);
-        temp = new card[4];
-        for (int i = 0; i < 6; i++) {
-            if (discardCards[i]) {
-                crib[cribCount] = computerCards[i];
-                cribCount++;
-            }
-            else {
-                temp[count] = computerCards[i];
-                count++;
-            }
-        }
-        delete[] computerCards;
-        computerCards = temp;
-        delete(discardCards);
-
-        //nibs/cut
-        cout << "The cut is a: " << cardToString(cut) << "\n";
-        if (cut.s == JACK) {
-            if (board.playerDeal) {
-                cout << "You get 2 points from nibs!\n";
-                board.playerPoints += 2;
-                if (board.gameOver()) goto endgame;
-            }
-            else {
-                cout << "The computer gets 2 points from nibs!\n";
-                board.computerPoints += 2;
-                if (board.gameOver()) goto endgame;
-            }
-        }
-        cout << "\n";
-
-        //running
-        cout << ACCENT_COLOR;
-        cout << "Starting the Running\n\n";
-        cout << DEFAULT_COLOR;
-        stack<card> history;
-        list<card> playerCardsList = arr4ToList(playerCards);
-        list<card> computerCardsList = arr4ToList(computerCards);
-        int total = 0;
-        int tempInt;
-        bool playerTurn = !board.playerDeal;
-        bool playerLastCard = true;
-        goto start;
-    newTotal: total = 0;
-        playerTurn = !playerLastCard;
-        cout << "New total: 0\n\n";
-        while (!history.empty()) history.pop();//clear history
-    start:
-        if (!(playerCardsList.empty() && computerCardsList.empty())) {//if neither party could play because no cards, end running
-            while (true) {
-                switch (playerTurn) {
-                case true://player turn
-                    if (!canPlayCard(playerCardsList, total)) {//cannot play card
-                        if (playerLastCard) {//opponent cannot play a card either, take a point for last card
-                            cout << "1 point for last card\n";
-                            board.playerPoints++;
-                            if (board.gameOver()) goto endgame;
-                            goto newTotal;
-                        }
-                        else cout << "Player: go\n";
-                        goto skip;
-                    }
-                    //play card
-                    history.push(playerRunningCardSelector(playerCardsList, history, total));
-                    playerCardsList.remove(history.top());
-                    playerLastCard = true;
-                    break;
-                case false://computer turn
-                    if (!canPlayCard(computerCardsList, total)) {//cannot play card
-                        if (!playerLastCard) {//opponent cannot play a card either, take a point for last card
-                            cout << "1 point for last card\n";
-                            board.computerPoints++;
-                            if (board.gameOver()) goto endgame;
-                            goto newTotal;
-                        }
-                        else cout << "Computer: go\n";
-                        goto skip;
-                    }
-                    //play card
-                    history.push(aiRunningCardSelector(computerCardsList, history, total));
-                    computerCardsList.remove(history.top());
-                    playerLastCard = false;
-                    break;
-                }
-                //add to total
-                total += valueOf(history.top());
-                //check for points
-                if (total == 15) {
-                    if (playerLastCard) {
-                        cout << "Player: ";
-                        board.playerPoints += 2;
-                    }
-                    else {
-                        cout << "Computer: ";
-                        board.computerPoints += 2;
-                    }
-                    cout << "15 for 2 points\n";
-                    if (board.gameOver()) goto endgame;
-                }
-                tempInt = runningPointsFromPairs(history);
-                if (tempInt != 0) {
-                    if (playerLastCard) {
-                        cout << "Player: ";
-                        board.playerPoints += tempInt;
-                    }
-                    else {
-                        cout << "Computer: ";
-                        board.computerPoints += tempInt;
-                    }
-                    cout << "pairs for " << tempInt;
-                    cout << " points\n";
-                    if (board.gameOver()) goto endgame;
-                }
-                else {//if points scored from pairs, no points for run possible
-                    tempInt = runningPointsFromRun(history);
-                    if (tempInt != 0) {
-                        if (playerLastCard) {
-                            cout << "Player: ";
-                            board.playerPoints += tempInt;
-                        }
-                        else {
-                            cout << "Computer: ";
-                            board.computerPoints += tempInt;
-                        }
-                        cout << "run for " << tempInt;
-                        cout << " points\n";
-                        if (board.gameOver()) goto endgame;
-                    }
-                }
-                cout << "Total: " << total;
-                cout << "\n";
-                if (playerLastCard) cout << "\n";
-                if (total == 31) {
-                    if (playerLastCard) {
-                        cout << "Player: ";
-                        board.playerPoints += 2;
-                    }
-                    else {
-                        cout << "Computer: ";
-                        board.computerPoints += 2;
-                    }
-                    cout << "31 for 2 points\n";
-                    if (board.gameOver()) goto endgame;
-                    goto newTotal;
-                }
-            skip: playerTurn = !playerTurn;
-            }
-        }
-
-        //counting
-        cout << ACCENT_COLOR;
-        cout << "\nCounting:\n";
-        cout << DEFAULT_COLOR;
-        int holder;
-        if (board.playerDeal) {
-            holder = getPoints(computerCards, cut, false);
-            cout << "Computer cards worth: " << holder;
-            cout << " points\n";
-            board.computerPoints += holder;
-            if (board.gameOver()) goto endgame;
-            holder = getPoints(playerCards, cut, false);
-            cout << "Player cards worth: " << holder;
-            cout << " points\n";
-            board.playerPoints += holder;
-            if (board.gameOver()) goto endgame;
-            holder = getPoints(crib, cut, true);
-            cout << "Player's crib worth: " << holder;
-            cout << " points\n";
-            board.playerPoints += holder;
-        }
-        else {
-            holder = getPoints(playerCards, cut, false);
-            cout << "Player cards worth: " << holder;
-            cout << " points\n";
-            board.playerPoints += holder;
-            if (board.gameOver()) goto endgame;
-            holder = getPoints(computerCards, cut, false);
-            cout << "Computer cards worth: " << holder;
-            cout << " points\n";
-            board.computerPoints += holder;
-            if (board.gameOver()) goto endgame;
-            holder = getPoints(crib, cut, true);
-            cout << "Computer's crib worth: " << holder;
-            cout << " points\n";
-            board.computerPoints += holder;
-        }
-        if (board.gameOver()) goto endgame;
-        cout << ACCENT_COLOR;
-        cout << "\n\nEnd of turn\n" << DEFAULT_COLOR << board.toString() << "\n";
-        board.advanceTurn();
-    }
-endgame: cout << "\n";
-    cout << board.toString();
-    cout << board.winner();
-    cout << "\n\n\n";
+//returns if the player won the game
+bool playGame() {
+    return false;//TODO
+//    Board board;
+//    Deck deck;
+//    while (true) {//turn loop
+//        //draw cards
+//        card* playerCards = new card[6];
+//        card* computerCards = new card[6];
+//        card cut;
+//        card* temp = deck.drawCards(13);
+//        for (int i = 0; i < 6; i++) {
+//            playerCards[i] = temp[2 * i + (int)board.playerDeal];
+//            computerCards[i] = temp[2 * i + (int)(!(board.playerDeal))];
+//        }
+//        cut = temp[12];
+//        delete[] temp;
+//
+//        //discard cards
+//        int count = 0;
+//        int cribCount = 0;
+//        bool* discardCards = playerDiscard(playerCards, board.playerDeal);
+//        temp = new card[4];
+//        card* crib = new card[4];
+//        for (int i = 0; i < 6; i++) {
+//            if (discardCards[i]) {
+//                crib[cribCount] = playerCards[i];
+//                cribCount++;
+//            }
+//            else {
+//                temp[count] = playerCards[i];
+//                count++;
+//            }
+//        }
+//        delete[] playerCards;
+//        playerCards = temp;
+//        delete(discardCards);
+//        count = 0;
+//        discardCards = aiDiscard(computerCards, board.playerDeal);
+//        temp = new card[4];
+//        for (int i = 0; i < 6; i++) {
+//            if (discardCards[i]) {
+//                crib[cribCount] = computerCards[i];
+//                cribCount++;
+//            }
+//            else {
+//                temp[count] = computerCards[i];
+//                count++;
+//            }
+//        }
+//        delete[] computerCards;
+//        computerCards = temp;
+//        delete(discardCards);
+//
+//        //nibs/cut
+//        cout << "The cut is a: " << cardToString(cut) << "\n";
+//        if (cut.s == JACK) {
+//            if (board.playerDeal) {
+//                cout << "You get 2 points from nibs!\n";
+//                board.playerPoints += 2;
+//                if (board.gameOver()) goto endgame;
+//            }
+//            else {
+//                cout << "The computer gets 2 points from nibs!\n";
+//                board.computerPoints += 2;
+//                if (board.gameOver()) goto endgame;
+//            }
+//        }
+//        cout << "\n";
+//
+//        //running
+//        cout << ACCENT_COLOR;
+//        cout << "Starting the Running\n\n";
+//        cout << DEFAULT_COLOR;
+//        stack<card> history;
+//        list<card> playerCardsList = arr4ToList(playerCards);
+//        list<card> computerCardsList = arr4ToList(computerCards);
+//        int total = 0;
+//        int tempInt;
+//        bool playerTurn = !board.playerDeal;
+//        bool playerLastCard = true;
+//        goto start;
+//    newTotal: total = 0;
+//        playerTurn = !playerLastCard;
+//        cout << "New total: 0\n\n";
+//        while (!history.empty()) history.pop();//clear history
+//    start:
+//        if (!(playerCardsList.empty() && computerCardsList.empty())) {//if neither party could play because no cards, end running
+//            while (true) {
+//                switch (playerTurn) {
+//                case true://player turn
+//                    if (!canPlayCard(playerCardsList, total)) {//cannot play card
+//                        if (playerLastCard) {//opponent cannot play a card either, take a point for last card
+//                            cout << "1 point for last card\n";
+//                            board.playerPoints++;
+//                            if (board.gameOver()) goto endgame;
+//                            goto newTotal;
+//                        }
+//                        else cout << "Player: go\n";
+//                        goto skip;
+//                    }
+//                    //play card
+//                    history.push(playerRunningCardSelector(playerCardsList, history, total));
+//                    playerCardsList.remove(history.top());
+//                    playerLastCard = true;
+//                    break;
+//                case false://computer turn
+//                    if (!canPlayCard(computerCardsList, total)) {//cannot play card
+//                        if (!playerLastCard) {//opponent cannot play a card either, take a point for last card
+//                            cout << "1 point for last card\n";
+//                            board.computerPoints++;
+//                            if (board.gameOver()) goto endgame;
+//                            goto newTotal;
+//                        }
+//                        else cout << "Computer: go\n";
+//                        goto skip;
+//                    }
+//                    //play card
+//                    history.push(aiRunningCardSelector(computerCardsList, history, total));
+//                    computerCardsList.remove(history.top());
+//                    playerLastCard = false;
+//                    break;
+//                }
+//                //add to total
+//                total += valueOf(history.top());
+//                //check for points
+//                if (total == 15) {
+//                    if (playerLastCard) {
+//                        cout << "Player: ";
+//                        board.playerPoints += 2;
+//                    }
+//                    else {
+//                        cout << "Computer: ";
+//                        board.computerPoints += 2;
+//                    }
+//                    cout << "15 for 2 points\n";
+//                    if (board.gameOver()) goto endgame;
+//                }
+//                tempInt = runningPointsFromPairs(history);
+//                if (tempInt != 0) {
+//                    if (playerLastCard) {
+//                        cout << "Player: ";
+//                        board.playerPoints += tempInt;
+//                    }
+//                    else {
+//                        cout << "Computer: ";
+//                        board.computerPoints += tempInt;
+//                    }
+//                    cout << "pairs for " << tempInt;
+//                    cout << " points\n";
+//                    if (board.gameOver()) goto endgame;
+//                }
+//                else {//if points scored from pairs, no points for run possible
+//                    tempInt = runningPointsFromRun(history);
+//                    if (tempInt != 0) {
+//                        if (playerLastCard) {
+//                            cout << "Player: ";
+//                            board.playerPoints += tempInt;
+//                        }
+//                        else {
+//                            cout << "Computer: ";
+//                            board.computerPoints += tempInt;
+//                        }
+//                        cout << "run for " << tempInt;
+//                        cout << " points\n";
+//                        if (board.gameOver()) goto endgame;
+//                    }
+//                }
+//                cout << "Total: " << total;
+//                cout << "\n";
+//                if (playerLastCard) cout << "\n";
+//                if (total == 31) {
+//                    if (playerLastCard) {
+//                        cout << "Player: ";
+//                        board.playerPoints += 2;
+//                    }
+//                    else {
+//                        cout << "Computer: ";
+//                        board.computerPoints += 2;
+//                    }
+//                    cout << "31 for 2 points\n";
+//                    if (board.gameOver()) goto endgame;
+//                    goto newTotal;
+//                }
+//            skip: playerTurn = !playerTurn;
+//            }
+//        }
+//
+//        //counting
+//        cout << ACCENT_COLOR;
+//        cout << "\nCounting:\n";
+//        cout << DEFAULT_COLOR;
+//        int holder;
+//        if (board.playerDeal) {
+//            holder = getPoints(computerCards, cut, false);
+//            cout << "Computer cards worth: " << holder;
+//            cout << " points\n";
+//            board.computerPoints += holder;
+//            if (board.gameOver()) goto endgame;
+//            holder = getPoints(playerCards, cut, false);
+//            cout << "Player cards worth: " << holder;
+//            cout << " points\n";
+//            board.playerPoints += holder;
+//            if (board.gameOver()) goto endgame;
+//            holder = getPoints(crib, cut, true);
+//            cout << "Player's crib worth: " << holder;
+//            cout << " points\n";
+//            board.playerPoints += holder;
+//        }
+//        else {
+//            holder = getPoints(playerCards, cut, false);
+//            cout << "Player cards worth: " << holder;
+//            cout << " points\n";
+//            board.playerPoints += holder;
+//            if (board.gameOver()) goto endgame;
+//            holder = getPoints(computerCards, cut, false);
+//            cout << "Computer cards worth: " << holder;
+//            cout << " points\n";
+//            board.computerPoints += holder;
+//            if (board.gameOver()) goto endgame;
+//            holder = getPoints(crib, cut, true);
+//            cout << "Computer's crib worth: " << holder;
+//            cout << " points\n";
+//            board.computerPoints += holder;
+//        }
+//        if (board.gameOver()) goto endgame;
+//        cout << ACCENT_COLOR;
+//        cout << "\n\nEnd of turn\n" << DEFAULT_COLOR << board.toString() << "\n";
+//        board.advanceTurn();
+//    }
+//endgame: cout << "\n";
+//    cout << board.toString();
+//    cout << board.winner();
+//    cout << "\n\n\n";
 }
 
 //Play cribbage on the console against the computer
 int main()
 {
-    cout << DEFAULT_COLOR;
+    if (!InitialConsoleSetup()) {
+        printf("Console setup failure");
+        return 1;
+    }
+    
     srand((unsigned int)time(NULL));
+
     playGame();
+
+    return 0;
 }
