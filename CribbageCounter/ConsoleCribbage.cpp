@@ -369,12 +369,28 @@ public:
 //renders a series of cards to the screen, if computerCards == NULL then will show card backs (unexposed cards)
 //use showSelectionsNumbers when 
 void render(Board board, int nPlayerCards, card* playerCards, int nComputerCards, card* computerCards, bool showSelectionNumbers) {
-
+    //TODO
 }
 
 //renders the current state of the running
 void renderRunning(Board board, list<card> playerCards, list<card> computerCards, stack<card> history, int total) {
+    //TODO
+}
 
+//shows a message/prompt to the user
+void renderMessage(string message) {
+    //TODO
+}
+
+//clears the message shown to the user
+void clearMessage() {
+    //TODO
+}
+
+//Shows the user the given prompt then gets the user's response
+//clears the message when done
+int getString(string prompt) {
+    //TODO
 }
 
 //recursive helper method for calculating points from fifteen
