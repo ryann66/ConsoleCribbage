@@ -468,6 +468,28 @@ void getRenderLocations(int nPlayerCards, int nComputerCards) {
     //last 4 lines reserved for message prompting
 }
 
+//renders a text based version of the card
+void renderCardTextual(COORD location, Card card) {
+    string cardString = cardToString(card);
+    size_t endPrint = cardSize.X;
+    while (cardString.size() > endPrint) {
+        movCursorTo(location.X, location.Y);
+        cout << cardString.erase(0, endPrint);
+        location.Y++;
+    }
+    movCursorTo(location.X, location.Y);
+    cout << cardString;
+}
+
+//renders a card
+void renderCard(COORD location, Card card) {
+    if (!graphicalCardRepresentations) {
+        renderCardTextual(location, card);
+        return;
+    }
+    //TODO
+}
+
 //renders just the board/score
 //DOES NOT UPDATE ELEMENT LOCATIONS OR CALL setConsoleSize()
 void renderBoard(Board board) {
