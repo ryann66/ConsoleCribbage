@@ -20,10 +20,15 @@ using namespace::std;
 #define STD_DELAY 1000 //(in ms) delay to read nonprompt messages
 //rendering/graphics definitions
 
+//settings
+COORD consoleSize;//call ResizeConsole() to initialize
+bool graphicalCardRepresentations = true;
+
 //helpful documentation on Windows console:
 //  https://learn.microsoft.com/en-us/windows/console
 
 //hides user input from the user, pretending it didn't happen
+//returns true if successful
 bool DisableInput() {
     HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
     if (hIn == INVALID_HANDLE_VALUE) {
@@ -45,6 +50,7 @@ bool DisableInput() {
 }
 
 //enables user input, deletes any past unread input
+//returns true if successful
 bool EnableInput() {
     HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
     if (hIn == INVALID_HANDLE_VALUE) {
@@ -67,8 +73,8 @@ bool EnableInput() {
 }
 
 //sets the buffer to fill the window
-//returns the size of the window
-COORD ResizeConsole() {
+//returns true if successful
+bool ResizeConsole() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 
     // retrieve screen buffer info
@@ -90,10 +96,10 @@ COORD ResizeConsole() {
 
     // set the new screen buffer dimensions and return the size of the window (regardless of success)
     if (SetConsoleScreenBufferSize(hOut, newSize)) {
-        newSize.X = winWidth;
-        newSize.Y = winHeight;
+        consoleSize = newSize;
+        return true;
     }
-    return newSize;
+    return false;
 }
 
 //formats the console correctly
@@ -121,9 +127,13 @@ bool InitialConsoleSetup()
         return false;
     }
 
-    ResizeConsole();
+    if (!ResizeConsole()) {
+        return false;
+    }
 
-    DisableInput();
+    if (!DisableInput()) {
+        return false;
+    }
 
     return true;
 }
@@ -246,14 +256,6 @@ list<card> arr4ToList(card* arr) {
     for (int i = 0; i < 4; i++)
         ret.push_back(arr[i]);
     return ret;
-}
-
-card getIndex(int i, list<card> l) {
-    auto iter = l.begin();
-    for (int j = 0; j < i; j++) {
-        iter++;
-    }
-    return *(iter);
 }
 
 //class to represent the deck of cards, can draw cards and return all cards to the deck
