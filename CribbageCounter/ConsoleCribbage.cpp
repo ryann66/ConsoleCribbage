@@ -32,10 +32,21 @@ using namespace::std;
 //pacing definitions
 #define STD_DELAY 1000 //(in ms) delay to read nonprompt messages
 //rendering/graphics definitions
-#define MESSAGE_OFFSET_X 10//number of characters over before rendering message
-#define CARD_BORDER_MARGIN 5
+#define MESSAGE_OFFSET_X 6//number of characters over before rendering message
+#define CARD_BORDER_MARGIN 2
 #define MIN_CARD_X 3
 #define MIN_CARD_Y 6
+#define MAX_CARD_X 20
+#define MAX_CARD_Y 40
+#define MIN_BOARD_X 4
+#define MIN_BOARD_Y 2
+#define PLAYER_PEG_COLOR ""
+#define COMPUTER_PEG_COLOR ""
+#define BOARD_COLOR ""
+#define CARD_WHITE ""
+#define CARD_BLACK ""
+#define CARD_RED ""
+#define CARD_BACK_ACCENT ""
 
 //settings
 bool graphicalCardRepresentations = true;
@@ -47,7 +58,7 @@ COORD playerCardStart;
 COORD computerCardStart;
 int playerCardXSpace;
 int computerCardXSpace;
-COORD cutCard;
+COORD cutCardStart;
 COORD boardStart;
 COORD boardSize;
 
@@ -489,18 +500,57 @@ public:
     }
 };
 
+//brings the cardSize global field into the correct aspect ratio (2y:1x)
+//implement restrictions/buckets for regulating displayable card sizes
+//cannot increase size of cards
+//returns true if succeeded, returns false if no possible solution was found
+bool fixCardSize() {
+    //TODO
+}
+
 //determines the location and size of the elements on the screen
 //sets values to the global variables (see renderingVariables section)
 void getRenderLocations(int nPlayerCards, int nComputerCards) {
 start:
     setConsoleSize();
-    messageBoxStart = consoleSize.Y - 4;
-    //TODO: establish rest of boundaries
+    int height = consoleSize.Y - 4;
+    messageBoxStart = height;
+    if (height < 3 * MIN_CARD_Y || consoleSize.X < MIN_CARD_X) goto screenTooSmall;//don't even bother calculating
 
-    //TODO: validate that all sizes are large enough to be valid
+    //(preliminary) Y size of all elements
+    height -= 4 * CARD_BORDER_MARGIN;
+    cardSize.Y = height / 3;
+    boardSize.Y = cardSize.Y + height % 3;
+
+    //(preliminary) X size of all elements
+    int width = nPlayerCards ^ nComputerCards ?
+        min(consoleSize.X - (1 + nComputerCards) * CARD_BORDER_MARGIN, consoleSize.X - (1 + nPlayerCards) * CARD_BORDER_MARGIN) :
+        consoleSize.X - (1 + nComputerCards) * CARD_BORDER_MARGIN;
+    cardSize.X = width / max(nPlayerCards, nComputerCards);
+
+    //finalize element size
+    height = cardSize.Y;
+    if (!fixCardSize())goto screenTooSmall;
+    boardSize.X = consoleSize.X - 3 * CARD_BORDER_MARGIN - cardSize.X;
+
+    //establish positions for elements
+    computerCardStart.X = (consoleSize.X - nComputerCards * cardSize.X) / (nComputerCards + 1);
+    computerCardXSpace = cardSize.X + computerCardStart.X;
+    playerCardStart.X = (consoleSize.X - nPlayerCards * cardSize.X) / (nPlayerCards + 1);
+    playerCardXSpace = cardSize.X + playerCardStart.X;
+    computerCardStart.Y = CARD_BORDER_MARGIN + ((cardSize.Y - height) / 2);
+    boardStart.X = CARD_BORDER_MARGIN;
+    boardStart.Y = height + 2 * CARD_BORDER_MARGIN;
+    playerCardStart.Y = boardStart.Y + boardSize.Y + ((cardSize.Y - height) / 2) + ((cardSize.Y - height) & 0x1);
+    cutCardStart.X = boardStart.X + boardSize.X + CARD_BORDER_MARGIN;
+    cutCardStart.Y = boardStart.Y + (boardSize.Y - cardSize.Y) / 2;
+
+    //validate that all sizes are large enough
+    if (cardSize.X < MIN_CARD_X || cardSize.Y < MIN_CARD_Y || cardSize.X > MAX_CARD_X || 
+        cardSize.Y > MAX_CARD_Y || boardSize.X < MIN_BOARD_X || boardSize.Y < MIN_BOARD_Y) goto screenTooSmall;
 
     return;
-screenToSmall:
+screenTooSmall:
     movCursorTo(0, 0);
     printf("Console window too small; enlarge to continue");
     waitConsoleResize();
