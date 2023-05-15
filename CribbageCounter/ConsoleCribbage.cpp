@@ -30,6 +30,9 @@ using namespace::std;
 #define STD_DELAY 1000 //(in ms) delay to read nonprompt messages
 //rendering/graphics definitions
 #define MESSAGE_OFFSET_X 10//number of characters over before rendering message
+#define CARD_BORDER_MARGIN 5
+#define MIN_CARD_X 3
+#define MIN_CARD_Y 6
 
 //settings
 bool graphicalCardRepresentations = true;
@@ -463,9 +466,9 @@ public:
 //sets values to the global variables (see renderingVariables section)
 void getRenderLocations(int nPlayerCards, int nComputerCards) {
     setConsoleSize();
+    messageBoxStart = consoleSize.Y - 4;
     //TODO
 
-    //last 4 lines reserved for message prompting
 }
 
 //renders a text based version of the card
