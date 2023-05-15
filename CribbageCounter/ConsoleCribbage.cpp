@@ -147,7 +147,7 @@ bool InitialConsoleSetup()
 
 //enumberation for the suit of a card
 //includes 0, representing no suit present
-enum suit {
+enum Suit {
     NOSUIT = 0,
     HEARTS,
     CLUBS,
@@ -159,7 +159,7 @@ enum suit {
 //set in order to card number from 1-10
 //ace is low, jack = 11, queen = 12, king = 13
 //includes 0, representing no number present
-enum number {
+enum Number {
     NONUMBER = 0,
     ONE = 1,
     TWO = 2,
@@ -177,29 +177,29 @@ enum number {
 };
 
 //struct representation of a card, defined by a suit and number
-struct card {
-    suit s;
-    number n;
+struct Card {
+    Suit s;
+    Number n;
 
-    card() : s(NOSUIT), n(NONUMBER) {}
+    Card() : s(NOSUIT), n(NONUMBER) {}
 
-    card(suit s, number n) {
+    Card(Suit s, Number n) {
         this->s = s;
         this->n = n;
     }
 
     //less than operator, only compares number
-    bool operator<(card rhs) {
+    bool operator<(Card rhs) {
         return (*this).n < rhs.n;
     }
 
     //greater than operator, only compares number
-    bool operator>(card rhs) {
+    bool operator>(Card rhs) {
         return rhs < (*this);
     }
 
     //equals operator, must be exact same card to match
-    bool operator==(const card rhs) const {
+    bool operator==(const Card rhs) const {
         if ((*this).s != rhs.s) return false;
         if ((*this).n != rhs.n) return false;
         return true;
@@ -210,14 +210,14 @@ struct card {
 //params:
 //  c the card
 //returns the value of the card, less than or equal to 10
-int valueOf(card c) {
+int valueOf(Card c) {
     return min((int)c.n, 10);
 }
 
 //returns a string representation of the given card
 //params:
 //  c the card to be represented as a string
-string cardToString(card c) {
+string cardToString(Card c) {
     string ret = "";
     if (c.n == 1) ret += "Ace";
     else if (c.n == 2) ret += "Two";
@@ -247,9 +247,9 @@ string cardToString(card c) {
 //  s the stack of cards to be added to the array
 //returns an array of cards containing all the cards in the stack s
 //returned array will be of length s.size()
-card* stackToArr(stack<card> s) {
+Card* stackToArr(stack<Card> s) {
     int j = (int)s.size();
-    card* ret = new card[j];
+    Card* ret = new Card[j];
     for (int i = 0; i < j; i++) {
         ret[i] = s.top();
         s.pop();
@@ -258,8 +258,8 @@ card* stackToArr(stack<card> s) {
 }
 
 //only use with arrays of length four
-list<card> arr4ToList(card* arr) {
-    list<card> ret;
+list<Card> arr4ToList(Card* arr) {
+    list<Card> ret;
     for (int i = 0; i < 4; i++)
         ret.push_back(arr[i]);
     return ret;
@@ -270,16 +270,16 @@ list<card> arr4ToList(card* arr) {
 //Does not contain either joker
 class Deck {
 private:
-    list<card> drawnCards;
+    list<Card> drawnCards;
 
     //checks if the given card has been drawn
     //params:
     //  card the card to check if has been drawn
     //returns true if the card has been drawn
-    bool isDrawn(card card) {
+    bool isDrawn(Card Card) {
         auto iter = drawnCards.begin();
         while (iter != drawnCards.end()) {
-            if ((*iter).n == card.n && (*iter).s == card.s) return true;
+            if ((*iter).n == Card.n && (*iter).s == Card.s) return true;
             iter++;
         }
         return false;
@@ -289,11 +289,11 @@ public:
     //draws a card from the deck
     //Warning: if 52 cards have been drawn, it will result in an infinite loop
     //returns a random card from the deck
-    card drawCard() {
-        card c;
+    Card drawCard() {
+        Card c;
         do {
-            c.n = (number)((rand() % 13) + 1);
-            c.s = (suit)((rand() % 4) + 1);
+            c.n = (Number)((rand() % 13) + 1);
+            c.s = (Suit)((rand() % 4) + 1);
         } while (isDrawn(c));
         drawnCards.push_back(c);
         return c;
@@ -301,8 +301,8 @@ public:
 
     //draws n cards from the deck
     //Warning: if there are fewer than n cards in the deck, it will result in an infinite loop
-    card* drawCards(int n) {
-        card* cards = new card[n];
+    Card* drawCards(int n) {
+        Card* cards = new Card[n];
         for (int i = 0; i < n; i++)
             cards[i] = drawCard();
         return cards;
@@ -399,14 +399,14 @@ void renderBoard(Board board) {
 //renders a series of cards to the screen, if computerCards == NULL then will show card backs (unexposed cards)
 //always shows numbers
 //cards will be numbered in their iteration order in the list (begin->end)
-void render(Board board, int nPlayerCards, card* playerCards, int nComputerCards, card* computerCards, card cut) {
+void render(Board board, int nPlayerCards, Card* playerCards, int nComputerCards, Card* computerCards, Card cut) {
     //TODO
 }
 
 //renders the current state of the running
 //always shows numbers
 //cards will be numbered in their iteration order in the list (begin->end)
-void renderRunning(Board board, list<card> playerCards, list<card> computerCards, stack<card> history, int total) {
+void renderRunning(Board board, list<Card> playerCards, list<Card> computerCards, stack<Card> history, int total) {
     //TODO
 }
 
@@ -436,7 +436,7 @@ string getInputString(string prompt) {
 //  value the value (face cards count as 10) of cards already added to the total
 //        set as 0, must be less than 15
 //returns the number of points from fifteen that can be made from cards and the given total
-int recursivePointsFromFifteenSum(stack<card> cards, int val) {
+int recursivePointsFromFifteenSum(stack<Card> cards, int val) {
     if (val == 15) return 2;
     if (val > 15) return 0;
     if (cards.empty()) return 0;
@@ -449,8 +449,8 @@ int recursivePointsFromFifteenSum(stack<card> cards, int val) {
 //params:
 //  cards card array of length 5 representing the cards in the hand
 //returns the number of points from runs the hand is worth, by cribbage rules
-int pointsFromFifteenSum(card* cards) {
-    stack<card> cardStack;
+int pointsFromFifteenSum(Card* cards) {
+    stack<Card> cardStack;
     for (int i = 0; i < 5; i++)
         cardStack.push(cards[i]);
     return recursivePointsFromFifteenSum(cardStack, 0);
@@ -460,7 +460,7 @@ int pointsFromFifteenSum(card* cards) {
 //params:
 //  cards card array of length 5 representing the cards in the hand
 //returns the number of points from runs the hand is worth, by cribbage rules
-int pointsFromPairs(card* cards) {
+int pointsFromPairs(Card* cards) {
     int points = 0;
     for (int i = 0; i < 5; i++) {
         for (int j = i + 1; j < 5; j++)
@@ -473,7 +473,7 @@ int pointsFromPairs(card* cards) {
 //params:
 //  cards card array of length 5 representing the cards in the hand
 //returns the number of points from runs the hand is worth, by cribbage rules (0 or 1)
-int pointsFromNobs(card* cards) {
+int pointsFromNobs(Card* cards) {
     for (int i = 1; i < 5; i++) {
         if (cards[i].n == JACK && cards[i].s == cards[0].s) return 1;
     }
@@ -484,7 +484,7 @@ int pointsFromNobs(card* cards) {
 //params:
 //  cards card array of length 5 representing the cards in the hand
 //  isCrib bool representing if the set of cards is the crib
-int pointsFromFlush(card* cards, bool isCrib) {
+int pointsFromFlush(Card* cards, bool isCrib) {
     for (int i = 2; i < 5; i++) {
         if (cards[i].s != cards[1].s) return 0;
     }
@@ -497,7 +497,7 @@ int pointsFromFlush(card* cards, bool isCrib) {
 //params:
 //  cards card array of length 5 representing the cards in the hand
 //returns the number of points from runs the hand is worth, by cribbage rules
-int pointsFromRun(card* cards) {
+int pointsFromRun(Card* cards) {
     int* quantity = new int[14];
     for (int i = 0; i < 14; i++) quantity[i] = 0;
     for (int i = 0; i < 5; i++)
@@ -525,8 +525,8 @@ int pointsFromRun(card* cards) {
 //  cut the cut card
 //  isCrib bool for if the current hand is the crib, only matters for flushes
 //returns the the number of points the hand is worth, by cribbage rules
-int getPoints(card* hand, card cut, bool isCrib) {
-    card* cards = new card[5];
+int getPoints(Card* hand, Card cut, bool isCrib) {
+    Card* cards = new Card[5];
     cards[0] = cut;
     for (int i = 0; i < 4; i++)
         cards[i + 1] = hand[i];
@@ -543,7 +543,7 @@ int getPoints(card* hand, card cut, bool isCrib) {
 //Auto-adds points gained to board!
 //used in counting points
 //returns the number of points the hand is worth
-int countPoints(Board board, card* hand, bool isCrib, bool isPlayerHand) {
+int countPoints(Board board, Card* hand, bool isCrib, bool isPlayerHand) {
     string s;
     int tempInt, points = 0;
     tempInt = pointsFromFifteenSum(hand);
@@ -626,7 +626,7 @@ int countPoints(Board board, card* hand, bool isCrib, bool isPlayerHand) {
 //  discard card array of length two that represents the two cards discarded
 //  ownCrib bool representing if the crib points should be counted favorably
 //returns the int value of the algorithm score for the discarded cards, can be negative
-int discardValue(card* discard, bool ownCrib) {
+int discardValue(Card* discard, bool ownCrib) {
     int score = 0;
 
     if (valueOf(discard[0]) + valueOf(discard[1]) == 15 || discard[0].n == discard[1].n) score = 2;
@@ -645,14 +645,14 @@ int discardValue(card* discard, bool ownCrib) {
 //  ownCrib bool representing if the crib points should be counted favorably
 //return int value representing the algorithm score of the given choice of cards
 //can be negative
-int scoreChoice(card* hand, card* discard, bool ownCrib) {
-    return getPoints(hand, card(), false) + discardValue(discard, ownCrib);
+int scoreChoice(Card* hand, Card* discard, bool ownCrib) {
+    return getPoints(hand, Card(), false) + discardValue(discard, ownCrib);
 }
 
 //returns the average value of cards in the given hand, face cards count as 10
 //params:
 //  hand card array of length 4
-double avgValue(card* hand) {
+double avgValue(Card* hand) {
     double sum = 0;
     for (int i = 0; i < 4; i++)
         sum += valueOf(hand[i]);
@@ -661,7 +661,7 @@ double avgValue(card* hand) {
 
 //prompts the player to select two cards to be discarded in the counting
 //Does not render cards!
-bool* playerDiscard(card* hand) {
+bool* playerDiscard(Card* hand) {
     string s = "Choose two cards to discard (two numbers in one line)";
     bool* ret = new bool[6];
 read: for (int i = 0; i < 6; i++) ret[i] = false;
@@ -689,12 +689,12 @@ read: for (int i = 0; i < 6; i++) ret[i] = false;
 //  playerDeal true if it is currently the player's deal (crib is hostile)
 //return bool array of length 6; will be all false except two true values,
 //the true values represent the two cards to be discarded into the crib
-bool* aiDiscard(card* cards, bool playerDeal) {
+bool* aiDiscard(Card* cards, bool playerDeal) {
     int bestI = 0, bestJ = 1, bestScore = INT16_MIN;
     double bestAvgValue = 14;
     int score;
-    card* hand = new card[4];
-    card* discard = new card[2];
+    Card* hand = new Card[4];
+    Card* discard = new Card[2];
     bool ownCrib = !playerDeal;
     for (int i = 0; i < 6; i++) {
         discard[0] = cards[i];
@@ -731,8 +731,8 @@ bool* aiDiscard(card* cards, bool playerDeal) {
 //  hand list of cards in the player's hand
 //  total the current total of points in the running (0 - 30 inclusive)
 //returns true if a card can be played
-bool canPlayCard(list<card> hand, int total) {
-    for (card c : hand) {
+bool canPlayCard(list<Card> hand, int total) {
+    for (Card c : hand) {
         if (valueOf(c) + total <= 31) return true;
     }
     return false;
@@ -743,10 +743,10 @@ bool canPlayCard(list<card> hand, int total) {
 //  history the stack of cards that has been played by all players
 //          with the most recent at the top of the stack
 //returns the number of points earned, will be positive or 0
-int runningPointsFromPairs(stack<card> history) {
+int runningPointsFromPairs(stack<Card> history) {
     if (history.empty()) return 0;
-    stack<card> pushStack;
-    card top = history.top();
+    stack<Card> pushStack;
+    Card top = history.top();
     history.pop();
     int row = 1;
     while (!history.empty() && history.top().n == top.n) {
@@ -821,12 +821,12 @@ int indexNoncontinuous(bool* set, int root) {
 //  history the stack of cards that has been played by all players
 //          with the most recent at the top of the stack
 //returns the number of points earned, will be positive or 0
-int runningPointsFromRun(stack<card> history) {
+int runningPointsFromRun(stack<Card> history) {
     int rootNum = history.top().n;
     bool* presentSet = new bool[14];
     for (int i = 0; i < 14; i++)
         presentSet[i] = false;
-    stack<card> pushStack;
+    stack<Card> pushStack;
     while (!history.empty()) {
         if (presentSet[history.top().n]) break;//already found card, look no further
         presentSet[history.top().n] = true;
@@ -874,7 +874,7 @@ int runningPointsFromRun(stack<card> history) {
 //prompts the player to select a card
 //hand must be <=4, larger numbers cannot be selected!
 //Does not render cards!
-card playerRunningCardSelector(list<card> hand, int total) {
+Card playerRunningCardSelector(list<Card> hand, int total) {
     //jump to readNew to append the options to the prompt s and get new input from user into s
     //out is number entered; (out > 4) indicates multiple numbers; (out = 0) indicates no numbers
     int out;
@@ -902,12 +902,12 @@ readNew: if (go) s += "(go)";
     }
     if (goFlag && !out) {//assume player go
     go:
-        if (go) return card();
+        if (go) return Card();
         s = "Go invalid. Select a card ";
         goto readNew;
     }
     int i = 1;
-    for (card c : hand) {//get selected card and test is valid
+    for (Card c : hand) {//get selected card and test is valid
         if (out == i) {
             if (valueOf(c) + total > 31) {
                 s = "Card too large! Try a smaller card ";
@@ -929,11 +929,11 @@ readNew: if (go) s += "(go)";
 //          with the most recent at the top of the stack
 //  total the count that the running has reached, 0-31 inclusive
 //returns the card to be played in the running
-card aiRunningCardSelector(list<card> hand, stack<card> history, int total) {
-    card bestCard = card();
+Card aiRunningCardSelector(list<Card> hand, stack<Card> history, int total) {
+    Card bestCard = Card();
     int bestValue = INT16_MIN;
 
-    for (card c : hand) {
+    for (Card c : hand) {
         if (total + valueOf(c) == 31) return c;
         else if (total + valueOf(c) > 31) continue;
         int value = 0;
@@ -958,10 +958,10 @@ bool playGame() {
     Deck deck;
     do {//turn loop
         //draw cards
-        card* playerCards = new card[6];
-        card* computerCards = new card[6];
-        card cut;
-        card* temp = deck.drawCards(13);
+        Card* playerCards = new Card[6];
+        Card* computerCards = new Card[6];
+        Card cut;
+        Card* temp = deck.drawCards(13);
         for (int i = 0; i < 6; i++) {
             playerCards[i] = temp[2 * i + (int)board.playerDeal()];
             computerCards[i] = temp[2 * i + (int)(!(board.playerDeal()))];
@@ -970,14 +970,14 @@ bool playGame() {
         delete[] temp;
 
         //render starting cards
-        render(board, 6, playerCards, 6, NULL, card());
+        render(board, 6, playerCards, 6, NULL, Card());
 
         //discard cards (playerCards and computerCards length trimmed to 4)
         int count = 0;
         int cribCount = 0;
         bool* discardCards = playerDiscard(playerCards);
-        temp = new card[4];
-        card* crib = new card[4];
+        temp = new Card[4];
+        Card* crib = new Card[4];
         for (int i = 0; i < 6; i++) {
             if (discardCards[i]) {
                 crib[cribCount] = playerCards[i];
@@ -993,7 +993,7 @@ bool playGame() {
         delete(discardCards);
         count = 0;
         discardCards = aiDiscard(computerCards, board.playerDeal());
-        temp = new card[4];
+        temp = new Card[4];
         for (int i = 0; i < 6; i++) {
             if (discardCards[i]) {
                 crib[cribCount] = computerCards[i];
@@ -1025,9 +1025,9 @@ bool playGame() {
         clearMessage();
 
         //running
-        stack<card> history;
-        list<card> playerCardsList = arr4ToList(playerCards);
-        list<card> computerCardsList = arr4ToList(computerCards);
+        stack<Card> history;
+        list<Card> playerCardsList = arr4ToList(playerCards);
+        list<Card> computerCardsList = arr4ToList(computerCards);
         int total = 0;
         int tempInt;
         bool playerTurn = !board.playerDeal();
