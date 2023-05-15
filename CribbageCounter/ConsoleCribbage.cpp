@@ -157,12 +157,14 @@ void waitConsoleResize() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_SCREEN_BUFFER_INFO consoleInfo;
     GetConsoleScreenBufferInfo(hOut, &consoleInfo);
-    short origX = consoleInfo.srWindow.Right - consoleInfo.srWindow.Left + 1, 
-        origY = consoleInfo.srWindow.Bottom - consoleInfo.srWindow.Top + 1;
+    short X, Y;
     do {
         GetConsoleScreenBufferInfo(hOut, &consoleInfo);
-    } while (!(consoleInfo.srWindow.Right - consoleInfo.srWindow.Left + 1 < origX ||
-        consoleInfo.srWindow.Bottom - consoleInfo.srWindow.Top + 1 < origY));
+        X = consoleInfo.srWindow.Right - consoleInfo.srWindow.Left + 1;
+        Y = consoleInfo.srWindow.Bottom - consoleInfo.srWindow.Top + 1;
+    } while (!(X > consoleSize.X || Y > consoleSize.Y));
+    consoleSize.X = X;
+    consoleSize.Y = Y;
 }
 
 //resize beta
