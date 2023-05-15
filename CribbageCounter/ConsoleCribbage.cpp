@@ -563,12 +563,8 @@ double avgValue(card* hand) {
 }
 
 //prompts the player to select two cards to be discarded in the counting
-//params:
-//  cards array of length 6 of cards that are in the players hand
-//  playerDeal true if it is currently the player's deal (crib is hostile)
-//return bool array of length 6; will be all false except two true values,
-//the true values represent the two cards to be discarded into the crib
-bool* playerDiscard(card* hand, bool playerDeal) {
+//Does not render cards!
+bool* playerDiscard(card* hand) {
     string s = "Choose two cards to discard (two numbers in one line)";
     bool* ret = new bool[6];
 read: for (int i = 0; i < 6; i++) ret[i] = false;
@@ -780,6 +776,7 @@ int runningPointsFromRun(stack<card> history) {
 
 //prompts the player to select a card
 //hand must be <=4, larger numbers cannot be selected!
+//Does not render cards!
 card playerRunningCardSelector(list<card> hand, int total) {
     //jump to readNew to append the options to the prompt s and get new input from user into s
     //out is number entered; (out > 4) indicates multiple numbers; (out = 0) indicates no numbers
