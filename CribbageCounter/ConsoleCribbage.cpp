@@ -15,11 +15,13 @@ using namespace::std;
 #define CSI "\x1b["
 #define OSC "\x1b]"
 #define ST "\x1b\x5c"
-//program definitions
+//program definitions/literals
 #define PROGRAM_NAME "Console Cribbage"
+#define ENDGAME_WIN "Congratulations!\n\nYou won"
+#define ENDGAME_LOSS "You lost.\n\nBetter luck next time"
 //gameplay definitions
 #define MAX_POINTS 121
-//handSize, drawSize
+//handSize, drawSize?
 //pacing definitions
 #define STD_DELAY 1000 //(in ms) delay to read nonprompt messages
 //rendering/graphics definitions
@@ -414,9 +416,41 @@ public:
     }
 };
 
+//prints the given message center alligned on line y
+//message will be centered at col x
+//message should not have any newlines in it
+//if message length is longer than console size, breaks into multiple lines
+//returns the number of lines that were printed on, with the first one at y
+//if 0 lines printed, function failed to print anything
+int printCenterAllign(string message, unsigned int x, unsigned int y) {
+    if (x > consoleSize.X || y > consoleSize.Y) return 0;
+    int len = message.length();
+    int lines = 0;
+    int maxLen = min(x + 1, consoleSize.X - len - 1);
+    if (len > maxLen) {
+        string m2 = message.substr(maxLen, len - maxLen);
+        message = message.substr(0, maxLen);
+        lines += printCenterAllign(m2, x, y + 1);
+    }
+    x -= (len >> 1);
+    x -= (len & 0x1);//bump to left if cannot be perfectly centered
+    //print message starting at x, y
+    printf("%s%i;%iH", CSI, y, x);
+    cout << message;
+}
+
+//clears the console of all text
+void renderClear() {
+    //TODO
+}
+
 //renders the endgame scrren, showing who won
 void renderEndgame(Board board) {
-    //TODO
+    //reproportion board
+    //(function coming soon)  TODO
+    int y = 0;//boardheight - offset(width of board)
+
+    
 }
 
 //renders just the board/score
@@ -1213,11 +1247,14 @@ int main()
         return 1;
     }
     
-    srand((unsigned int)time(NULL));
+    printCenterAllign("Hello, World!", consoleSize.X/2, 3);
 
-    //intended later implementation of a menu
-    playGame();
+    //srand((unsigned int)time(NULL));
 
-    useDefaultConsole();
-    return 0;
+    ////intended later implementation of a menu
+    //playGame();
+
+    //renderClear();
+    //useDefaultConsole();
+    //return 0;
 }
