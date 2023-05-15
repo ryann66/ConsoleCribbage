@@ -140,6 +140,21 @@ void setConsoleSize() {
     consoleSize = c;
 }
 
+//waits until the console is enlarged in either direction
+//pushes the larger size to consoleSize
+//does not guarantee any size to be achieved, just that the area is larger than it was
+void waitConsoleResize() {
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO consoleInfo;
+    GetConsoleScreenBufferInfo(hOut, &consoleInfo);
+    short origX = consoleInfo.srWindow.Right - consoleInfo.srWindow.Left + 1, 
+        origY = consoleInfo.srWindow.Bottom - consoleInfo.srWindow.Top + 1;
+    do {
+        GetConsoleScreenBufferInfo(hOut, &consoleInfo);
+    } while (!(consoleInfo.srWindow.Right - consoleInfo.srWindow.Left + 1 < origX ||
+        consoleInfo.srWindow.Bottom - consoleInfo.srWindow.Top + 1 < origY));
+}
+
 //resize beta
 void useFullConsole() {
     cout << CSI << "?1049h";
@@ -465,10 +480,19 @@ public:
 //determines the location and size of the elements on the screen
 //sets values to the global variables (see renderingVariables section)
 void getRenderLocations(int nPlayerCards, int nComputerCards) {
+start:
     setConsoleSize();
     messageBoxStart = consoleSize.Y - 4;
-    //TODO
+    //TODO: establish rest of boundaries
 
+    //TODO: validate that all sizes are large enough to be valid
+
+    return;
+screenToSmall:
+    movCursorTo(0, 0);
+    printf("Console window too small; enlarge to continue");
+    waitConsoleResize();
+    goto start;
 }
 
 //renders a text based version of the card
