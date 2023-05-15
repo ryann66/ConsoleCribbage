@@ -29,12 +29,13 @@ using namespace::std;
 //pacing definitions
 #define STD_DELAY 1000 //(in ms) delay to read nonprompt messages
 //rendering/graphics definitions
+#define MESSAGE_OFFSET_X 10//number of characters over before rendering message
 
 //settings
 bool graphicalCardRepresentations = true;
 //rendering variables
 COORD consoleSize;
-int messageBoxHeight;
+int messageBoxStart;//the line of the separator bar, message goes 2 lines below
 COORD cardSize;
 COORD playerCardStart;
 COORD computerCardStart;
@@ -189,6 +190,10 @@ bool InitialConsoleSetup()
     return true;
 }
 
+void movCursorTo(int x, int y) {
+    printf("%s%i;%iH", CSI, y, x);
+}
+
 //prints the given message center alligned on line y
 //message will be centered at col x
 //message should not have any newlines in it
@@ -207,8 +212,7 @@ int printCenterAllign(string message, unsigned int x, unsigned int y) {//TODO: m
     }
     x -= (len >> 1);
     x -= (len & 0x1);//bump to left if cannot be perfectly centered
-    //print message starting at x, y
-    printf("%s%i;%iH", CSI, y, x);
+    movCursorTo(x, y);
     cout << message;
     lines++;
     return lines;
@@ -504,21 +508,28 @@ void renderRunning(Board board, list<Card> playerCards, list<Card> computerCards
 }
 
 //shows a message/prompt to the user
+//leaves cursor at end of message
 void renderMessage(string message) {
-    //TODO
+    movCursorTo(MESSAGE_OFFSET_X, messageBoxStart + 2);
+    cout << message;
 }
 
 //clears the message shown to the user
+//method may not work if getRenderLocations() has been called since message rendered
 void clearMessage() {
-    //TODO
+    movCursorTo(0, messageBoxStart + 2);
+    printf(CLEAR_LINE);
 }
 
 //Shows the user the given prompt then gets the user's response
 //clears the message when done
 string getInputString(string prompt) {
     renderMessage(prompt);
+    cout << CSI << "2C";
     string ret;
+    EnableInput();
     cin >> ret;
+    DisableInput();
     clearMessage();
     return ret;
 }
