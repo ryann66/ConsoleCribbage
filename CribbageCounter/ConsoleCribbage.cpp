@@ -13,6 +13,10 @@ using namespace::std;
 //console definitions
 #define ESC "\x1b"
 #define CSI "\x1b["
+#define OSC "\x1b]"
+#define ST "\x1b\x5c"
+//program definitions
+#define PROGRAM_NAME "Console Cribbage"
 //gameplay definitions
 #define MAX_POINTS 121
 //handSize, drawSize
@@ -134,6 +138,9 @@ bool InitialConsoleSetup()
     if (!DisableInput()) {
         return false;
     }
+
+    //change title
+    cout << OSC << "0;" << PROGRAM_NAME << ST;
 
     return true;
 }
