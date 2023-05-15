@@ -2,7 +2,7 @@
 #include <wchar.h>
 #include <Windows.h>
 
-#include<regex>
+#include <regex>
 #include <stack>
 #include <list>
 #include <string>
@@ -57,6 +57,7 @@ COORD boardSize;
 //hides user input from the user, pretending it didn't happen
 //returns true if successful
 bool DisableInput() {
+    //disable input
     HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
     if (hIn == INVALID_HANDLE_VALUE) {
         return false;
@@ -73,12 +74,15 @@ bool DisableInput() {
             return false;
         }
     }
+    //hide cursor
+    printf(CSI "?25l");
     return true;
 }
 
 //enables user input, deletes any past unread input
 //returns true if successful
 bool EnableInput() {
+    //enable input
     HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
     if (hIn == INVALID_HANDLE_VALUE) {
         return false;
@@ -95,6 +99,9 @@ bool EnableInput() {
             return false;
         }
     }
+    //show cursor
+    printf(CSI "?25h");
+    //clear buffer
     cin.clear();
     return true;
 }
