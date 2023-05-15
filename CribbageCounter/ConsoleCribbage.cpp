@@ -507,27 +507,6 @@ int pointsFromRun(card* cards) {
 }
 
 //scores the number of points in the given hand
-//params:
-//  hand array of length five that represents the hand
-//       hand[0] is the cut card
-//  isCrib bool for if the current hand is the crib, only matters for flushes
-//returns the the number of points the hand is worth, by cribbage rules
-int getPoints(card* hand, bool isCrib) {//hand[0] is the cut card
-    int points = 0;
-    points += pointsFromFifteenSum(hand);
-    //cout << points << "\n";
-    points += pointsFromPairs(hand);
-    //cout << points << "\n";
-    points += pointsFromRun(hand);
-    //cout << points << "\n";
-    points += pointsFromFlush(hand, isCrib);
-    //cout << points << "\n";
-    points += pointsFromNobs(hand);
-    //cout << points << "\n";
-    return points;
-}
-
-//scores the number of points in the given hand
 //Does not print anything to the output!  Does not affect score/points!
 //params:
 //  hand array of length four that represents the hand
