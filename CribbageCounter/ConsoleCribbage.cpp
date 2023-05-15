@@ -10,6 +10,9 @@
 
 using namespace::std;
 
+//Version
+#define VERSION "0.2.0"
+
 //console definitions
 #define ESC "\x1b"
 #define CSI "\x1b["
