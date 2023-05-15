@@ -15,10 +15,14 @@ using namespace::std;
 #define CSI "\x1b["
 #define OSC "\x1b]"
 #define ST "\x1b\x5c"
+//console sequences
+#define CLEAR_CONSOLE CSI "2J"
+#define CLEAR_LINE CSI "2K"
 //program definitions/literals
 #define PROGRAM_NAME "Console Cribbage"
-#define ENDGAME_WIN "Congratulations!\n\nYou won"
-#define ENDGAME_LOSS "You lost.\n\nBetter luck next time"
+#define ENDGAME_MESSAGE_DELIM "\n"//endgame messages will get split over multiple at each spot where there is a delimeter
+#define ENDGAME_WIN "Congratulations!" ENDGAME_MESSAGE_DELIM "You won"
+#define ENDGAME_LOSS "You lost." ENDGAME_MESSAGE_DELIM "Better luck next time"
 //gameplay definitions
 #define MAX_POINTS 121
 //handSize, drawSize?
@@ -30,7 +34,15 @@ using namespace::std;
 bool graphicalCardRepresentations = true;
 //rendering variables
 COORD consoleSize;
-int MessageBoxHeight;
+int messageBoxHeight;
+COORD cardSize;
+COORD playerCardStart;
+COORD computerCardStart;
+int playerCardXSpace;
+int computerCardXSpace;
+COORD cutCard;
+COORD boardStart;
+COORD boardSize;
 
 //helpful documentation on Windows console:
 //  https://learn.microsoft.com/en-us/windows/console
@@ -111,8 +123,8 @@ bool ResizeConsole() {
     return false;
 }
 
-//gets the size of the console buffer
-COORD getConsoleBufferSize() {
+//sets the global consoleSize to the size of the console buffer
+void setConsoleSize() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     // retrieve screen buffer info
     CONSOLE_SCREEN_BUFFER_INFO scrBufferInfo;
@@ -121,7 +133,7 @@ COORD getConsoleBufferSize() {
     COORD c;
     c.X = scrBufferInfo.dwSize.X;
     c.Y = scrBufferInfo.dwSize.Y;
-    return c;
+    consoleSize = c;
 }
 
 //resize beta
@@ -166,7 +178,7 @@ bool InitialConsoleSetup()
     /*if (!ResizeConsole()) {
         return false;
     }*/
-    consoleSize = getConsoleBufferSize();
+    setConsoleSize();
 
     if (!DisableInput()) {
         return false;
@@ -175,6 +187,31 @@ bool InitialConsoleSetup()
     changeConsoleTitle(PROGRAM_NAME);
 
     return true;
+}
+
+//prints the given message center alligned on line y
+//message will be centered at col x
+//message should not have any newlines in it
+//if message length is longer than console size, breaks into multiple lines
+//returns the number of lines that were printed on, with the first one at y
+//if 0 lines printed, function failed to print anything
+int printCenterAllign(string message, unsigned int x, unsigned int y) {//TODO: maxlen linesplitting feature is broken?
+    if (x > consoleSize.X || y > consoleSize.Y) return 0;
+    int len = message.length();
+    int lines = 0;
+    int maxLen = min(x + 1, consoleSize.X - len - 1);
+    if (len > maxLen) {
+        string m2 = message.substr(maxLen, len - maxLen);
+        message = message.substr(0, maxLen);
+        lines = printCenterAllign(m2, x, y + 1);
+    }
+    x -= (len >> 1);
+    x -= (len & 0x1);//bump to left if cannot be perfectly centered
+    //print message starting at x, y
+    printf("%s%i;%iH", CSI, y, x);
+    cout << message;
+    lines++;
+    return lines;
 }
 
 //enumberation for the suit of a card
@@ -418,46 +455,37 @@ public:
     }
 };
 
-//prints the given message center alligned on line y
-//message will be centered at col x
-//message should not have any newlines in it
-//if message length is longer than console size, breaks into multiple lines
-//returns the number of lines that were printed on, with the first one at y
-//if 0 lines printed, function failed to print anything
-int printCenterAllign(string message, unsigned int x, unsigned int y) {
-    if (x > consoleSize.X || y > consoleSize.Y) return 0;
-    int len = message.length();
-    int lines = 0;
-    int maxLen = min(x + 1, consoleSize.X - len - 1);
-    if (len > maxLen) {
-        string m2 = message.substr(maxLen, len - maxLen);
-        message = message.substr(0, maxLen);
-        lines += printCenterAllign(m2, x, y + 1);
-    }
-    x -= (len >> 1);
-    x -= (len & 0x1);//bump to left if cannot be perfectly centered
-    //print message starting at x, y
-    printf("%s%i;%iH", CSI, y, x);
-    cout << message;
+//determines the location and size of the elements on the screen
+//sets values to the global variables (see renderingVariables section)
+void getRenderLocations(int nPlayerCards, int nComputerCards) {
+    setConsoleSize();
+    //TODO
+
+    //last 4 lines reserved for message prompting
 }
 
-//clears the console of all text
-void renderClear() {
+//renders just the board/score
+//DOES NOT UPDATE ELEMENT LOCATIONS OR CALL setConsoleSize()
+void renderBoard(Board board) {
     //TODO
 }
 
 //renders the endgame scrren, showing who won
 void renderEndgame(Board board) {
-    //reproportion board
-    //(function coming soon)  TODO
-    int y = 0;//boardheight - offset(width of board)
-
-    
-}
-
-//renders just the board/score
-void renderBoard(Board board) {
-    //TODO
+    printf(CLEAR_CONSOLE);
+    getRenderLocations(0, 0);
+    int offset = boardSize.Y / 2 + 1;
+    int messageY = boardStart.Y - offset;
+    boardStart.Y += offset;
+    renderBoard(board);
+    string message = board.playerWin() ? ENDGAME_WIN : ENDGAME_LOSS;
+    size_t pos;
+    int messageX = consoleSize.X / 2;
+    while ((pos = message.find(ENDGAME_MESSAGE_DELIM)) != string::npos) {
+        offset += printCenterAllign(message.substr(0, pos), messageX, offset) + 1;
+        message.erase(0, pos + 1);
+    }
+    printCenterAllign(message.substr(0, pos), messageX, offset);
 }
 
 //Full render, renders everything
@@ -1250,7 +1278,6 @@ int main()
         return 1;
     }
     
-    srand((unsigned int)time(NULL));
 
     //srand((unsigned int)time(NULL));
 
