@@ -501,11 +501,16 @@ public:
 };
 
 //brings the cardSize global field into the correct aspect ratio (2y:1x)
-//implement restrictions/buckets for regulating displayable card sizes
+//implement restrictions/buckets for regulating displayable card sizes (TODO)
 //cannot increase size of cards
 //returns true if succeeded, returns false if no possible solution was found
 bool fixCardSize() {
-    //TODO
+    int tmp = cardSize.X * 2;
+    if (cardSize.Y > tmp) cardSize.Y = tmp;
+    else {
+        cardSize.Y -= (cardSize.Y & 0x1);
+        cardSize.X = (cardSize.Y >> 1);
+    }
 }
 
 //determines the location and size of the elements on the screen
