@@ -76,9 +76,10 @@ bool EnableInput() {
     return true;
 }
 
-//sets the buffer to fill the window
-//returns true if successful
+//sets the console size to the passed value
+//possibly redundant (unused)
 bool ResizeConsole() {
+    //Code resizes main console buffer to window size, removing scrolling
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 
     // retrieve screen buffer info
@@ -106,6 +107,32 @@ bool ResizeConsole() {
     return false;
 }
 
+//gets the size of the console buffer
+COORD getConsoleBufferSize() {
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    // retrieve screen buffer info
+    CONSOLE_SCREEN_BUFFER_INFO scrBufferInfo;
+    GetConsoleScreenBufferInfo(hOut, &scrBufferInfo);
+
+    COORD c;
+    c.X = scrBufferInfo.dwSize.X;
+    c.Y = scrBufferInfo.dwSize.Y;
+    return c;
+}
+
+//resize beta
+void useFullConsole() {
+    cout << CSI << "?1049h";
+}
+
+void useDefaultConsole() {
+    cout << CSI << "?1049l";
+}
+
+void changeConsoleTitle(string title) {
+    cout << OSC << "0;" << title << ST;
+}
+
 //formats the console correctly
 //enables escape sequences
 //removes the scroll bar
@@ -131,16 +158,17 @@ bool InitialConsoleSetup()
         return false;
     }
 
-    if (!ResizeConsole()) {
+    useFullConsole();
+    /*if (!ResizeConsole()) {
         return false;
-    }
+    }*/
+    consoleSize = getConsoleBufferSize();
 
     if (!DisableInput()) {
         return false;
     }
 
-    //change title
-    cout << OSC << "0;" << PROGRAM_NAME << ST;
+    changeConsoleTitle(PROGRAM_NAME);
 
     return true;
 }
@@ -1190,5 +1218,6 @@ int main()
     //intended later implementation of a menu
     playGame();
 
+    useDefaultConsole();
     return 0;
 }
