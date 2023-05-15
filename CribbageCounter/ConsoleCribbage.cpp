@@ -17,7 +17,7 @@ using namespace::std;
 #define MAX_POINTS 121
 //handSize, drawSize
 //pacing definitions
-#define STD_DELAY 1000
+#define STD_DELAY 1000 //(in ms) delay to read nonprompt messages
 //rendering/graphics definitions
 
 //helpful documentation on Windows console:
@@ -414,8 +414,11 @@ void clearMessage() {
 //Shows the user the given prompt then gets the user's response
 //clears the message when done
 string getInputString(string prompt) {
-    //TODO
-    return NULL;
+    renderMessage(prompt);
+    string ret;
+    cin >> ret;
+    clearMessage();
+    return ret;
 }
 
 //recursive helper method for calculating points from fifteen
