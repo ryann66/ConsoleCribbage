@@ -15,6 +15,9 @@ using namespace::std;
 #define CSI "\x1b["
 //gameplay definitions
 #define MAX_POINTS 121
+//handSize, drawSize
+//pacing definitions
+#define STD_DELAY 1000
 //rendering/graphics definitions
 
 //helpful documentation on Windows console:
@@ -246,11 +249,11 @@ list<card> arr4ToList(card* arr) {
 }
 
 card getIndex(int i, list<card> l) {
-    auto iter = l.begin;
-    for (j = 0; j < i; j++) {
+    auto iter = l.begin();
+    for (int j = 0; j < i; j++) {
         iter++;
     }
-    return *iter;
+    return *(iter);
 }
 
 //class to represent the deck of cards, can draw cards and return all cards to the deck
@@ -313,18 +316,18 @@ public:
 class Board {
 private:
     int playerPoints, computerPoints;
-    bool playerDeal;
+    bool isPlayerDeal;
 
 public:
     //constructor, default values of no points, randomly selects the first player
     Board() {
         playerPoints = 0;
         computerPoints = 0;
-        playerDeal = (bool)(rand() % 2);
+        isPlayerDeal = (bool)(rand() % 2);
     }
 
     bool playerDeal() {
-        return playerDeal;
+        return isPlayerDeal;
     }
 
     int getPlayerPoints() {
@@ -370,17 +373,30 @@ public:
 
     //advances which player's turn it is
     void advanceTurn() {
-        playerDeal = !playerDeal;
+        isPlayerDeal = !isPlayerDeal;
     }
 };
 
+//renders the endgame scrren, showing who won
+void renderEndgame(Board board) {
+    //TODO
+}
+
+//renders just the board/score
+void renderBoard(Board board) {
+    //TODO
+}
+
 //renders a series of cards to the screen, if computerCards == NULL then will show card backs (unexposed cards)
-//use showSelectionsNumbers when 
-void render(Board board, int nPlayerCards, card* playerCards, int nComputerCards, card* computerCards, bool showSelectionNumbers) {
+//always shows numbers
+//cards will be numbered in their iteration order in the list (begin->end)
+void render(Board board, int nPlayerCards, card* playerCards, int nComputerCards, card* computerCards, card cut) {
     //TODO
 }
 
 //renders the current state of the running
+//always shows numbers
+//cards will be numbered in their iteration order in the list (begin->end)
 void renderRunning(Board board, list<card> playerCards, list<card> computerCards, stack<card> history, int total) {
     //TODO
 }
@@ -397,8 +413,9 @@ void clearMessage() {
 
 //Shows the user the given prompt then gets the user's response
 //clears the message when done
-int getInputString(string prompt) {
+string getInputString(string prompt) {
     //TODO
+    return NULL;
 }
 
 //recursive helper method for calculating points from fifteen
@@ -511,6 +528,7 @@ int getPoints(card* hand, bool isCrib) {//hand[0] is the cut card
 }
 
 //scores the number of points in the given hand
+//Does not print anything to the output!  Does not affect score/points!
 //params:
 //  hand array of length four that represents the hand
 //  cut the cut card
@@ -521,7 +539,95 @@ int getPoints(card* hand, card cut, bool isCrib) {
     cards[0] = cut;
     for (int i = 0; i < 4; i++)
         cards[i + 1] = hand[i];
-    return getPoints(cards, isCrib);
+    int points = 0;
+    points += pointsFromFifteenSum(cards);
+    points += pointsFromPairs(cards);
+    points += pointsFromRun(cards);
+    points += pointsFromFlush(cards, isCrib);
+    points += pointsFromNobs(cards);
+    return points;
+}
+
+//verbose version of getPoints()
+//Auto-adds points gained to board!
+//used in counting points
+//returns the number of points the hand is worth
+int countPoints(Board board, card* hand, bool isCrib, bool isPlayerHand) {
+    string s;
+    int tempInt, points = 0;
+    tempInt = pointsFromFifteenSum(hand);
+    if (tempInt) {
+        if (isPlayerHand) {
+            board.givePlayerPoints(tempInt);
+            s = "You get";
+        }
+        else {
+            board.giveComputerPoints(tempInt);
+            s = "Computer gets ";
+        }
+        s += tempInt;
+        s += " points from fifteens";
+        renderMessage(s);
+        renderBoard(board);
+        Sleep(STD_DELAY);
+        clearMessage();
+        points += tempInt;
+    }
+    tempInt = pointsFromRun(hand);
+    if (tempInt) {
+        if (isPlayerHand) {
+            board.givePlayerPoints(tempInt);
+            s = "You get";
+        }
+        else {
+            board.giveComputerPoints(tempInt);
+            s = "Computer gets ";
+        }
+        s += tempInt;
+        s += " points from runs";
+        renderMessage(s);
+        renderBoard(board);
+        Sleep(STD_DELAY);
+        clearMessage();
+        points += tempInt;
+    }
+    tempInt = pointsFromFlush(hand, isCrib);
+    if (tempInt) {
+        if (isPlayerHand) {
+            board.givePlayerPoints(tempInt);
+            s = "You get";
+        }
+        else {
+            board.giveComputerPoints(tempInt);
+            s = "Computer gets ";
+        }
+        s += tempInt;
+        s += " points from flush";
+        renderMessage(s);
+        renderBoard(board);
+        Sleep(STD_DELAY);
+        clearMessage();
+        points += tempInt;
+    }
+    tempInt = pointsFromNobs(hand);
+    if (tempInt) {
+        if (isPlayerHand) {
+            board.givePlayerPoints(tempInt);
+            s = "You get";
+        }
+        else {
+            board.giveComputerPoints(tempInt);
+            s = "Computer gets ";
+        }
+        s += tempInt;
+        s += " points from nobs";
+        renderMessage(s);
+        renderBoard(board);
+        Sleep(STD_DELAY);
+        clearMessage();
+        points += tempInt;
+    }
+    return points;
 }
 
 //helper method for scoreChoice() that gets the algorithm score for a set of cards to be discarded
@@ -569,7 +675,7 @@ bool* playerDiscard(card* hand) {
     bool* ret = new bool[6];
 read: for (int i = 0; i < 6; i++) ret[i] = false;
     s = getInputString(s);
-    for (int i = 0; i < s.length(); i++) {
+    for (unsigned int i = 0; i < s.length(); i++) {
         if (s[i] == '1') ret[0] = true;
         else if (s[i] == '2') ret[1] = true;
         else if (s[i] == '3') ret[2] = true;
@@ -789,10 +895,13 @@ card playerRunningCardSelector(list<card> hand, int total) {
     string s = "Select a card to play ";
 readNew: if (go) s += "(go)";
     else if (hand.size() == 1) s += "(1)";
-    else s += "(1-" + hand.size() + ")";
+    else {
+        s += "(1-" + hand.size();
+        s += ")";
+    }
     s = getInputString(s);
     out = 0;
-    for (int j = 0; j < s.length(); j++) {
+    for (unsigned int j = 0; j < s.length(); j++) {
         if (s[j] == '1') out = (out << 2) + 1;
         if (s[j] == '2') out = (out << 2) + 2;
         if (s[j] == '3') out = (out << 2) + 3;
@@ -854,238 +963,227 @@ card aiRunningCardSelector(list<card> hand, stack<card> history, int total) {
 //plays a game of cribbage against the computer on the console
 //returns if the player won the game
 bool playGame() {
-    return false;//TODO
-//    Board board;
-//    Deck deck;
-//    while (true) {//turn loop
-//        //draw cards
-//        card* playerCards = new card[6];
-//        card* computerCards = new card[6];
-//        card cut;
-//        card* temp = deck.drawCards(13);
-//        for (int i = 0; i < 6; i++) {
-//            playerCards[i] = temp[2 * i + (int)board.playerDeal];
-//            computerCards[i] = temp[2 * i + (int)(!(board.playerDeal))];
-//        }
-//        cut = temp[12];
-//        delete[] temp;
-//
-//        //discard cards
-//        int count = 0;
-//        int cribCount = 0;
-//        bool* discardCards = playerDiscard(playerCards, board.playerDeal);
-//        temp = new card[4];
-//        card* crib = new card[4];
-//        for (int i = 0; i < 6; i++) {
-//            if (discardCards[i]) {
-//                crib[cribCount] = playerCards[i];
-//                cribCount++;
-//            }
-//            else {
-//                temp[count] = playerCards[i];
-//                count++;
-//            }
-//        }
-//        delete[] playerCards;
-//        playerCards = temp;
-//        delete(discardCards);
-//        count = 0;
-//        discardCards = aiDiscard(computerCards, board.playerDeal);
-//        temp = new card[4];
-//        for (int i = 0; i < 6; i++) {
-//            if (discardCards[i]) {
-//                crib[cribCount] = computerCards[i];
-//                cribCount++;
-//            }
-//            else {
-//                temp[count] = computerCards[i];
-//                count++;
-//            }
-//        }
-//        delete[] computerCards;
-//        computerCards = temp;
-//        delete(discardCards);
-//
-//        //nibs/cut
-//        cout << "The cut is a: " << cardToString(cut) << "\n";
-//        if (cut.s == JACK) {
-//            if (board.playerDeal) {
-//                cout << "You get 2 points from nibs!\n";
-//                board.playerPoints += 2;
-//                if (board.gameOver()) goto endgame;
-//            }
-//            else {
-//                cout << "The computer gets 2 points from nibs!\n";
-//                board.computerPoints += 2;
-//                if (board.gameOver()) goto endgame;
-//            }
-//        }
-//        cout << "\n";
-//
-//        //running
-//        cout << ACCENT_COLOR;
-//        cout << "Starting the Running\n\n";
-//        cout << DEFAULT_COLOR;
-//        stack<card> history;
-//        list<card> playerCardsList = arr4ToList(playerCards);
-//        list<card> computerCardsList = arr4ToList(computerCards);
-//        int total = 0;
-//        int tempInt;
-//        bool playerTurn = !board.playerDeal;
-//        bool playerLastCard = true;
-//        goto start;
-//    newTotal: total = 0;
-//        playerTurn = !playerLastCard;
-//        cout << "New total: 0\n\n";
-//        while (!history.empty()) history.pop();//clear history
-//    start:
-//        if (!(playerCardsList.empty() && computerCardsList.empty())) {//if neither party could play because no cards, end running
-//            while (true) {
-//                switch (playerTurn) {
-//                case true://player turn
-//                    if (!canPlayCard(playerCardsList, total)) {//cannot play card
-//                        if (playerLastCard) {//opponent cannot play a card either, take a point for last card
-//                            cout << "1 point for last card\n";
-//                            board.playerPoints++;
-//                            if (board.gameOver()) goto endgame;
-//                            goto newTotal;
-//                        }
-//                        else cout << "Player: go\n";
-//                        goto skip;
-//                    }
-//                    //play card
-//                    history.push(playerRunningCardSelector(playerCardsList, history, total));
-//                    playerCardsList.remove(history.top());
-//                    playerLastCard = true;
-//                    break;
-//                case false://computer turn
-//                    if (!canPlayCard(computerCardsList, total)) {//cannot play card
-//                        if (!playerLastCard) {//opponent cannot play a card either, take a point for last card
-//                            cout << "1 point for last card\n";
-//                            board.computerPoints++;
-//                            if (board.gameOver()) goto endgame;
-//                            goto newTotal;
-//                        }
-//                        else cout << "Computer: go\n";
-//                        goto skip;
-//                    }
-//                    //play card
-//                    history.push(aiRunningCardSelector(computerCardsList, history, total));
-//                    computerCardsList.remove(history.top());
-//                    playerLastCard = false;
-//                    break;
-//                }
-//                //add to total
-//                total += valueOf(history.top());
-//                //check for points
-//                if (total == 15) {
-//                    if (playerLastCard) {
-//                        cout << "Player: ";
-//                        board.playerPoints += 2;
-//                    }
-//                    else {
-//                        cout << "Computer: ";
-//                        board.computerPoints += 2;
-//                    }
-//                    cout << "15 for 2 points\n";
-//                    if (board.gameOver()) goto endgame;
-//                }
-//                tempInt = runningPointsFromPairs(history);
-//                if (tempInt != 0) {
-//                    if (playerLastCard) {
-//                        cout << "Player: ";
-//                        board.playerPoints += tempInt;
-//                    }
-//                    else {
-//                        cout << "Computer: ";
-//                        board.computerPoints += tempInt;
-//                    }
-//                    cout << "pairs for " << tempInt;
-//                    cout << " points\n";
-//                    if (board.gameOver()) goto endgame;
-//                }
-//                else {//if points scored from pairs, no points for run possible
-//                    tempInt = runningPointsFromRun(history);
-//                    if (tempInt != 0) {
-//                        if (playerLastCard) {
-//                            cout << "Player: ";
-//                            board.playerPoints += tempInt;
-//                        }
-//                        else {
-//                            cout << "Computer: ";
-//                            board.computerPoints += tempInt;
-//                        }
-//                        cout << "run for " << tempInt;
-//                        cout << " points\n";
-//                        if (board.gameOver()) goto endgame;
-//                    }
-//                }
-//                cout << "Total: " << total;
-//                cout << "\n";
-//                if (playerLastCard) cout << "\n";
-//                if (total == 31) {
-//                    if (playerLastCard) {
-//                        cout << "Player: ";
-//                        board.playerPoints += 2;
-//                    }
-//                    else {
-//                        cout << "Computer: ";
-//                        board.computerPoints += 2;
-//                    }
-//                    cout << "31 for 2 points\n";
-//                    if (board.gameOver()) goto endgame;
-//                    goto newTotal;
-//                }
-//            skip: playerTurn = !playerTurn;
-//            }
-//        }
-//
-//        //counting
-//        cout << ACCENT_COLOR;
-//        cout << "\nCounting:\n";
-//        cout << DEFAULT_COLOR;
-//        int holder;
-//        if (board.playerDeal) {
-//            holder = getPoints(computerCards, cut, false);
-//            cout << "Computer cards worth: " << holder;
-//            cout << " points\n";
-//            board.computerPoints += holder;
-//            if (board.gameOver()) goto endgame;
-//            holder = getPoints(playerCards, cut, false);
-//            cout << "Player cards worth: " << holder;
-//            cout << " points\n";
-//            board.playerPoints += holder;
-//            if (board.gameOver()) goto endgame;
-//            holder = getPoints(crib, cut, true);
-//            cout << "Player's crib worth: " << holder;
-//            cout << " points\n";
-//            board.playerPoints += holder;
-//        }
-//        else {
-//            holder = getPoints(playerCards, cut, false);
-//            cout << "Player cards worth: " << holder;
-//            cout << " points\n";
-//            board.playerPoints += holder;
-//            if (board.gameOver()) goto endgame;
-//            holder = getPoints(computerCards, cut, false);
-//            cout << "Computer cards worth: " << holder;
-//            cout << " points\n";
-//            board.computerPoints += holder;
-//            if (board.gameOver()) goto endgame;
-//            holder = getPoints(crib, cut, true);
-//            cout << "Computer's crib worth: " << holder;
-//            cout << " points\n";
-//            board.computerPoints += holder;
-//        }
-//        if (board.gameOver()) goto endgame;
-//        cout << ACCENT_COLOR;
-//        cout << "\n\nEnd of turn\n" << DEFAULT_COLOR << board.toString() << "\n";
-//        board.advanceTurn();
-//    }
-//endgame: cout << "\n";
-//    cout << board.toString();
-//    cout << board.winner();
-//    cout << "\n\n\n";
+    Board board;
+    Deck deck;
+    do {//turn loop
+        //draw cards
+        card* playerCards = new card[6];
+        card* computerCards = new card[6];
+        card cut;
+        card* temp = deck.drawCards(13);
+        for (int i = 0; i < 6; i++) {
+            playerCards[i] = temp[2 * i + (int)board.playerDeal()];
+            computerCards[i] = temp[2 * i + (int)(!(board.playerDeal()))];
+        }
+        cut = temp[12];
+        delete[] temp;
+
+        //render starting cards
+        render(board, 6, playerCards, 6, NULL, card());
+
+        //discard cards (playerCards and computerCards length trimmed to 4)
+        int count = 0;
+        int cribCount = 0;
+        bool* discardCards = playerDiscard(playerCards);
+        temp = new card[4];
+        card* crib = new card[4];
+        for (int i = 0; i < 6; i++) {
+            if (discardCards[i]) {
+                crib[cribCount] = playerCards[i];
+                cribCount++;
+            }
+            else {
+                temp[count] = playerCards[i];
+                count++;
+            }
+        }
+        delete[] playerCards;
+        playerCards = temp;
+        delete(discardCards);
+        count = 0;
+        discardCards = aiDiscard(computerCards, board.playerDeal());
+        temp = new card[4];
+        for (int i = 0; i < 6; i++) {
+            if (discardCards[i]) {
+                crib[cribCount] = computerCards[i];
+                cribCount++;
+            }
+            else {
+                temp[count] = computerCards[i];
+                count++;
+            }
+        }
+        delete[] computerCards;
+        computerCards = temp;
+        delete(discardCards);
+
+        //nibs/cut (also show discard happened)
+        render(board, 4, playerCards, 4, NULL, cut);
+        if (cut.s == JACK) {
+            if (board.playerDeal()) {
+                renderMessage("You got 2 points from nibs!");
+                if (board.givePlayerPoints(2)) goto endgame;
+            }
+            else {
+                renderMessage("The computer got 2 points from nibs!");
+                if (board.giveComputerPoints(2)) goto endgame;
+            }
+            renderBoard(board);
+        }
+        Sleep(STD_DELAY);
+        clearMessage();
+
+        //running
+        stack<card> history;
+        list<card> playerCardsList = arr4ToList(playerCards);
+        list<card> computerCardsList = arr4ToList(computerCards);
+        int total = 0;
+        int tempInt;
+        bool playerTurn = !board.playerDeal();
+        bool playerLastCard = true;
+        goto start;
+    newTotal: total = 0;
+        playerTurn = !playerLastCard;
+        while (!history.empty()) history.pop();//clear history
+    start:
+        renderRunning(board, playerCardsList, computerCardsList, history, total);
+        if (!(playerCardsList.empty() && computerCardsList.empty())) {//if neither party could play because no cards, end running
+            while (true) {
+                switch (playerTurn) {
+                case true://player turn
+                    if (!canPlayCard(playerCardsList, total)) {//cannot play card
+                        if (playerLastCard) {//opponent cannot play a card either, take a point for last card
+                            board.givePlayerPoints(1);
+                            renderBoard(board);
+                            renderMessage("You got 1 point for last card");
+                            Sleep(STD_DELAY);
+                            clearMessage();
+                            if (board.gameOver()) goto endgame;
+                            goto newTotal;
+                        }
+                        //playerExpected to say go
+                        playerRunningCardSelector(playerCardsList, total);
+                        goto skip;
+                    }
+                    //play card
+                    history.push(playerRunningCardSelector(playerCardsList, total));
+                    playerCardsList.remove(history.top());
+                    playerLastCard = true;
+                    break;
+                case false://computer turn
+                    if (!canPlayCard(computerCardsList, total)) {//cannot play card
+                        if (playerLastCard) {//opponent cannot play a card either, take a point for last card
+                            board.giveComputerPoints(1);
+                            renderBoard(board);
+                            renderMessage("Computer gets 1 point for last card");
+                            Sleep(STD_DELAY);
+                            clearMessage();
+                            if (board.gameOver()) goto endgame;
+                            goto newTotal;
+                        }
+                        //computer says go (no need for function call)
+                        goto skip;
+                    }
+                    //play card
+                    history.push(aiRunningCardSelector(computerCardsList, history, total));
+                    computerCardsList.remove(history.top());
+                    playerLastCard = false;
+                    break;
+                }
+                //add to total
+                total += valueOf(history.top());
+                renderRunning(board, playerCardsList, computerCardsList, history, total);
+                //check for points
+                if (total == 15) {//15 checking has independent checking because it can overlap with the other point giving combos
+                    if (playerLastCard) {
+                        board.givePlayerPoints(2);
+                        renderMessage("15 for 2 points");
+                    }
+                    else {
+                        board.giveComputerPoints(2);
+                        renderMessage("Computer gets 2 points for 15");
+                    }
+                    renderBoard(board);
+                    Sleep(STD_DELAY);
+                    clearMessage();
+                    if (board.gameOver()) goto endgame;
+                }
+                tempInt = runningPointsFromPairs(history);
+                if (tempInt) {
+                    string s;
+                    s += tempInt;
+                    if (playerLastCard) {
+                        board.givePlayerPoints(tempInt);
+                        renderMessage(s + " points from pairs");
+                    }
+                    else {
+                        board.giveComputerPoints(tempInt);
+                        renderMessage("Computer gets " + s + " points from pairs");
+                    }
+                    renderBoard(board);
+                    Sleep(STD_DELAY);
+                    clearMessage();
+                    if (board.gameOver()) goto endgame;
+                }
+                else {//if points scored from pairs, no points for run possible
+                    tempInt = runningPointsFromRun(history);
+                    if (tempInt) {
+                        string s;
+                        s += tempInt;
+                        if (playerLastCard) {
+                            board.givePlayerPoints(tempInt);
+                            renderMessage(s + " points from a run");
+                        }
+                        else {
+                            board.giveComputerPoints(tempInt);
+                            renderMessage("Computer gets a run for " + s + " points");
+                        }
+                        renderBoard(board);
+                        Sleep(STD_DELAY);
+                        clearMessage();
+                        if (board.gameOver()) goto endgame;
+                    }
+                }
+                if (total == 31) {
+                    if (playerLastCard) {
+                        board.givePlayerPoints(2);
+                        renderMessage("31 for 2 points");
+                    }
+                    else {
+                        board.giveComputerPoints(2);
+                        renderMessage("Computer got 31 for 2 points");
+                    }
+                    renderBoard(board);
+                    Sleep(STD_DELAY);
+                    clearMessage();
+                    if (board.gameOver()) goto endgame;
+                }
+            skip: playerTurn = !playerTurn;
+            }
+        }
+
+        //counting
+        render(board, 4, playerCards, 4, computerCards, cut);
+        if (board.playerDeal()) {
+            countPoints(board, computerCards, false, false);
+            if (board.gameOver()) goto endgame;
+            countPoints(board, playerCards, false, true);
+            if (board.gameOver()) goto endgame;
+            countPoints(board, crib, true, true);
+        }
+        else {
+            countPoints(board, playerCards, false, true);
+            if (board.gameOver()) goto endgame;
+            countPoints(board, computerCards, false, false);
+            if (board.gameOver()) goto endgame;
+            countPoints(board, crib, true, false);
+        }
+        board.advanceTurn();
+    }while (!board.gameOver());
+        endgame: 
+    renderEndgame(board);
+    Sleep(2 * STD_DELAY);//change to continue on keypress?
+    return board.playerWin();
 }
 
 //Play cribbage on the console against the computer
@@ -1098,6 +1196,7 @@ int main()
     
     srand((unsigned int)time(NULL));
 
+    //intended later implementation of a menu
     playGame();
 
     return 0;
