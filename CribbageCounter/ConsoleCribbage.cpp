@@ -25,8 +25,10 @@ using namespace::std;
 //rendering/graphics definitions
 
 //settings
-COORD consoleSize;//call ResizeConsole() to initialize
 bool graphicalCardRepresentations = true;
+//rendering variables
+COORD consoleSize;
+int MessageBoxHeight;
 
 //helpful documentation on Windows console:
 //  https://learn.microsoft.com/en-us/windows/console
@@ -414,6 +416,11 @@ public:
     }
 };
 
+//updates the global variabbles with the correct sizes 
+void setSize() {
+    MessageBoxHeight = consoleSize.Y - 4;
+}
+
 //renders the endgame scrren, showing who won
 void renderEndgame(Board board) {
     //TODO
@@ -424,6 +431,7 @@ void renderBoard(Board board) {
     //TODO
 }
 
+//Full render, renders everything
 //renders a series of cards to the screen, if computerCards == NULL then will show card backs (unexposed cards)
 //always shows numbers
 //cards will be numbered in their iteration order in the list (begin->end)
@@ -1212,12 +1220,12 @@ int main()
         printf("Console setup failure");
         return 1;
     }
-    
-    srand((unsigned int)time(NULL));
 
-    //intended later implementation of a menu
-    playGame();
+    //srand((unsigned int)time(NULL));
 
-    useDefaultConsole();
-    return 0;
+    ////intended later implementation of a menu
+    //playGame();
+
+    //useDefaultConsole();
+    //return 0;
 }
