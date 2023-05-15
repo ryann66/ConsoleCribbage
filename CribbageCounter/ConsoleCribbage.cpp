@@ -245,6 +245,14 @@ list<card> arr4ToList(card* arr) {
     return ret;
 }
 
+card getIndex(int i, list<card> l) {
+    auto iter = l.begin;
+    for (j = 0; j < i; j++) {
+        iter++;
+    }
+    return *iter;
+}
+
 //class to represent the deck of cards, can draw cards and return all cards to the deck
 //This implementation works best when you do not need to draw all or most of the cards in the deck
 //Does not contain either joker
@@ -389,7 +397,7 @@ void clearMessage() {
 
 //Shows the user the given prompt then gets the user's response
 //clears the message when done
-int getString(string prompt) {
+int getInputString(string prompt) {
     //TODO
 }
 
@@ -561,35 +569,25 @@ double avgValue(card* hand) {
 //return bool array of length 6; will be all false except two true values,
 //the true values represent the two cards to be discarded into the crib
 bool* playerDiscard(card* hand, bool playerDeal) {
-    return NULL;//TODO
-//    cout << "Choose two cards to discard (two numbers in one line). ";
-//    if (playerDeal) cout << "You are the dealer";
-//    else cout << "You are not the dealer";
-//    cout << "\n";
-//    for (int i = 0; i < 6; i++) {
-//        cout << (i + 1);
-//        cout << ". " << cardToString(hand[i]) << "\n";
-//    }
-//    //read two numbers between 1-6, inclusive
-//    string s;
-//    bool* ret = new bool[6];
-//read: for (int i = 0; i < 6; i++) ret[i] = false;
-//    getline(cin, s);
-//    for (int i = 0; i < s.length(); i++) {
-//        if (s[i] == '1') ret[0] = true;
-//        else if (s[i] == '2') ret[1] = true;
-//        else if (s[i] == '3') ret[2] = true;
-//        else if (s[i] == '4') ret[3] = true;
-//        else if (s[i] == '5') ret[4] = true;
-//        else if (s[i] == '6') ret[5] = true;
-//    }
-//    int i = 0;
-//    for (int j = 0; j < 6; j++) i += (int)ret[j];
-//    if (i != 2) {
-//        cout << "Invalid response. Try entering two numbers like this (1,2)\n";
-//        goto read;
-//    }
-//    return ret;
+    string s = "Choose two cards to discard (two numbers in one line)";
+    bool* ret = new bool[6];
+read: for (int i = 0; i < 6; i++) ret[i] = false;
+    s = getInputString(s);
+    for (int i = 0; i < s.length(); i++) {
+        if (s[i] == '1') ret[0] = true;
+        else if (s[i] == '2') ret[1] = true;
+        else if (s[i] == '3') ret[2] = true;
+        else if (s[i] == '4') ret[3] = true;
+        else if (s[i] == '5') ret[4] = true;
+        else if (s[i] == '6') ret[5] = true;
+    }
+    int i = 0;
+    for (int j = 0; j < 6; j++) i += (int)ret[j];
+    if (i != 2) {
+        s = "Invalid response. Try entering two numbers like this (1,2)";
+        goto read;
+    }
+    return ret;
 }
 
 //automatically selects two cards to be discarded in the counting
@@ -781,47 +779,49 @@ int runningPointsFromRun(stack<card> history) {
 }
 
 //prompts the player to select a card
-//Warning: one of the cards in the hand must be playable! Failure will result infinite loop
-//params:
-//  hand the list of cards that the player has in hand
-//  history the stack of cards that has been played by all players 
-//          with the most recent at the top of the stack
-//  total the count that the running has reached, 0-31 inclusive
-//returns the card to be played in the running
-card playerRunningCardSelector(list<card> hand, stack<card> history, int total) {
-    return card();//TODO
-//    if (!history.empty())
-//        cout << "\nHistory:\n" << printStack(history) << "\n\n";
-//    cout << "Choose one card to play:\n";
-//    int i = 1;
-//    for (card c : hand) {
-//        cout << i;
-//        cout << ". " << cardToString(c) << "\n";
-//        i++;
-//    }
-//read: int out = 0;
-//    string s;
-//    getline(cin, s);
-//    for (int j = 0; j < s.length(); j++) {
-//        if (s[j] == '1') out = out * 10 + 1;
-//        if (s[j] == '2') out = out * 10 + 2;
-//        if (s[j] == '3') out = out * 10 + 3;
-//        if (s[j] == '4') out = out * 10 + 4;
-//    }
-//    i = 1;
-//    for (card c : hand) {//get selected card and test is valid
-//        if (out == i) {
-//            if (valueOf(c) + total > 31) {
-//                cout << "Card too large, try a different card!\n";
-//                goto read;
-//            }
-//            return c;
-//        }
-//        i++;
-//    }
-//    cout << "Invalid response. Try entering a number between 1 and " << hand.size();//failed to find card
-//    cout << "\n";
-//    goto read;
+//hand must be <=4, larger numbers cannot be selected!
+card playerRunningCardSelector(list<card> hand, int total) {
+    //jump to readNew to append the options to the prompt s and get new input from user into s
+    //out is number entered; (out > 4) indicates multiple numbers; (out = 0) indicates no numbers
+    int out;
+    //indicates if the player is expected to say go
+    bool go = !canPlayCard(hand, total);
+    //indicates that a g has been found, trigger for assuming player said go
+    bool goFlag = false;
+    //dual purpose: gets user input and sends message to user
+    string s = "Select a card to play ";
+readNew: if (go) s += "(go)";
+    else if (hand.size() == 1) s += "(1)";
+    else s += "(1-" + hand.size() + ")";
+    s = getInputString(s);
+    out = 0;
+    for (int j = 0; j < s.length(); j++) {
+        if (s[j] == '1') out = (out << 2) + 1;
+        if (s[j] == '2') out = (out << 2) + 2;
+        if (s[j] == '3') out = (out << 2) + 3;
+        if (s[j] == '4') out = (out << 2) + 4;
+        if (s[j] == 'g' || s[j] == 'G') goFlag = true;
+        if ((s[j] == 'o' || s[j] == 'O') && goFlag && (s[j-1] == 'g' || s[j-1] == 'G')) goto go;//explicit go found
+    }
+    if (goFlag && !out) {//assume player go
+    go:
+        if (go) return card();
+        s = "Go invalid. Select a card ";
+        goto readNew;
+    }
+    int i = 1;
+    for (card c : hand) {//get selected card and test is valid
+        if (out == i) {
+            if (valueOf(c) + total > 31) {
+                s = "Card too large! Try a smaller card ";
+                goto readNew;
+            }
+            return c;
+        }
+        i++;
+    }
+    s = "Invalid response. Try entering a number  ";//failed to find card
+    goto readNew;
 }
 
 //automatically selects a card to be played in the running (DEBUG: currently just routes to player card selector) TODO!
