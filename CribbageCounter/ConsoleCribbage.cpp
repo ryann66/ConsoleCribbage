@@ -41,18 +41,17 @@ using namespace::std;
 #define MIN_BOARD_X 4
 #define MIN_BOARD_Y 2
 #define DEFAULT_COLOR CSI "0m"
-
-#define PLAYER_PEG_COLOR ""
-#define COMPUTER_PEG_COLOR ""
-#define BOARD_COLOR_BACKGROUND ""
-#define CARD_WHITE_BACKGROUND "" //main card color
-#define CARD_WHITE ""
-#define CARD_BLACK_BACKGROUND "" //black (for suits)
-#define CARD_BLACK ""
-#define CARD_RED_BACKGROUND "" //red (for suits)
-#define CARD_RED ""
-#define CARD_ACCENT_BACKGROUND "" //color to be used in card back
-#define CARD_ACCENT ""
+#define PLAYER_PEG_COLOR CSI "92m"
+#define COMPUTER_PEG_COLOR CSI "94m"
+#define BOARD_COLOR_BACKGROUND CSI "48;2;210;180;140m"
+#define CARD_WHITE_BACKGROUND CSI "107m" //main card color
+#define CARD_WHITE CSI "97m"
+#define CARD_BLACK_BACKGROUND CSI "40m" //black (for suits)
+#define CARD_BLACK CSI "30m"
+#define CARD_RED_BACKGROUND CSI "41m" //red (for suits)
+#define CARD_RED CSI "31m"
+#define CARD_ACCENT_BACKGROUND CSI "46m" //color to be used in card back
+#define CARD_ACCENT CSI "36m"
 
 //settings
 bool graphicalCardRepresentations = true;
@@ -507,17 +506,14 @@ public:
 };
 
 //prints a rectangle of size spaceSize, starting at spaceStart (inclusive) with filler chars
-//color indicates a terminal sequence to change color beforehand; color will be reset to default
-//after function execution
+//does not change color
 void fillSpace(string color, char filler, COORD spaceStart, COORD spaceSize) {
-    cout << color;
     for (int i = 0; i < spaceSize.Y; i++) {
         movCursorTo(spaceStart.X, spaceStart.Y + i);
         for (int j = 0; j < spaceSize.X; j++) {
             printf("%c", filler);
         }
     }
-    cout << DEFAULT_COLOR;
 }
 
 //brings the cardSize global field into the correct aspect ratio (2y:1x)
@@ -531,6 +527,7 @@ bool fixCardSize() {
         cardSize.Y -= (cardSize.Y & 0x1);
         cardSize.X = (cardSize.Y >> 1);
     }
+    return true;
 }
 
 //determines the location and size of the elements on the screen
@@ -1434,13 +1431,6 @@ int main()
         return 1;
     }
 
-    COORD c, d;
-    c.X = 10;
-    c.Y = 10;
-    d.X = 12;
-    d.Y = 24;
-    fillSpace(CARD_WHITE_BACKGROUND, ' ', c, d);
-    
 
     //srand((unsigned int)time(NULL));
 
