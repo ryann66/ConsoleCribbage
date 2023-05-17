@@ -200,9 +200,9 @@ void waitConsoleResize() {
     consoleSize.Y = Y;
 }
 
-//resize beta
 void useFullConsole() {
-    cout << CSI << "?1049h";
+    ResizeConsole();
+    //cout << CSI << "?1049h";
 }
 
 void useDefaultConsole() {
