@@ -518,6 +518,7 @@ bool fixCardSize() {
 void getRenderLocations(int nPlayerCards, int nComputerCards) {
 start:
     setConsoleSize();
+    int width;
     int height = consoleSize.Y - 4;
     messageBoxStart = height;
     if (height < 3 * MIN_CARD_Y || consoleSize.X < MIN_CARD_X) goto screenTooSmall;//don't even bother calculating
@@ -528,7 +529,7 @@ start:
     boardSize.Y = cardSize.Y + height % 3;
 
     //(preliminary) X size of all elements
-    int width = nPlayerCards ^ nComputerCards ?
+    width = nPlayerCards ^ nComputerCards ?
         min(consoleSize.X - (1 + nComputerCards) * CARD_BORDER_MARGIN, consoleSize.X - (1 + nPlayerCards) * CARD_BORDER_MARGIN) :
         consoleSize.X - (1 + nComputerCards) * CARD_BORDER_MARGIN;
     cardSize.X = width / max(nPlayerCards, nComputerCards);
