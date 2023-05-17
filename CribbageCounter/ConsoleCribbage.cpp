@@ -40,13 +40,19 @@ using namespace::std;
 #define MAX_CARD_Y 40
 #define MIN_BOARD_X 4
 #define MIN_BOARD_Y 2
+#define DEFAULT_COLOR CSI "0m"
+
 #define PLAYER_PEG_COLOR ""
 #define COMPUTER_PEG_COLOR ""
-#define BOARD_COLOR ""
+#define BOARD_COLOR_BACKGROUND ""
+#define CARD_WHITE_BACKGROUND "" //main card color
 #define CARD_WHITE ""
+#define CARD_BLACK_BACKGROUND "" //black (for suits)
 #define CARD_BLACK ""
+#define CARD_RED_BACKGROUND "" //red (for suits)
 #define CARD_RED ""
-#define CARD_BACK_ACCENT ""
+#define CARD_ACCENT_BACKGROUND "" //color to be used in card back
+#define CARD_ACCENT ""
 
 //settings
 bool graphicalCardRepresentations = true;
@@ -500,6 +506,20 @@ public:
     }
 };
 
+//prints a rectangle of size spaceSize, starting at spaceStart (inclusive) with filler chars
+//color indicates a terminal sequence to change color beforehand; color will be reset to default
+//after function execution
+void fillSpace(string color, char filler, COORD spaceStart, COORD spaceSize) {
+    cout << color;
+    for (int i = 0; i < spaceSize.Y; i++) {
+        movCursorTo(spaceStart.X, spaceStart.Y + i);
+        for (int j = 0; j < spaceSize.X; j++) {
+            printf("%c", filler);
+        }
+    }
+    cout << DEFAULT_COLOR;
+}
+
 //brings the cardSize global field into the correct aspect ratio (2y:1x)
 //implement restrictions/buckets for regulating displayable card sizes (TODO)
 //cannot increase size of cards
@@ -588,6 +608,9 @@ void renderCard(COORD location, Card card) {
 //DOES NOT UPDATE ELEMENT LOCATIONS OR CALL setConsoleSize()
 void renderBoard(Board board) {
     //TODO
+    movCursorTo(boardStart.X, boardStart.Y);
+    cout << "Player: " << board.getPlayerPoints();
+    cout << "\nComputer:" << board.getComputerPoints();
 }
 
 //renders the endgame scrren, showing who won
@@ -1397,6 +1420,11 @@ bool playGame() {
     return board.playerWin();
 }
 
+//tmp
+void rend(Card card) {
+    
+}
+
 //Play cribbage on the console against the computer
 int main()
 {
@@ -1404,6 +1432,13 @@ int main()
         printf("Console setup failure");
         return 1;
     }
+
+    COORD c, d;
+    c.X = 10;
+    c.Y = 10;
+    d.X = 12;
+    d.Y = 24;
+    fillSpace(CARD_WHITE_BACKGROUND, ' ', c, d);
     
 
     //srand((unsigned int)time(NULL));
