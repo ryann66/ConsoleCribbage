@@ -200,15 +200,18 @@ void waitConsoleResize() {
     consoleSize.Y = Y;
 }
 
+//Sets console into full screen program control mode
 void useFullConsole() {
     ResizeConsole();
     //cout << CSI << "?1049h";
 }
 
+//Sets the console to use the normal scrolling console mode
 void useDefaultConsole() {
     cout << CSI << "?1049l";
 }
 
+//changes the console/window title to be the given title string
 void changeConsoleTitle(string title) {
     cout << OSC << "0;" << title << ST;
 }
@@ -758,7 +761,8 @@ void renderCardBack(COORD location) {
     cout << DEFAULT_COLOR;
 }
 
-//renders a card
+//renders the given card at the given location
+//renders a textual version if not using setting useGraphicalCardRepresentations
 void renderCard(COORD location, Card card) {
     if (!graphicalCardRepresentations) {
         renderCardTextual(location, card);
