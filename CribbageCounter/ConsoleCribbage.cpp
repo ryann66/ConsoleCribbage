@@ -354,27 +354,68 @@ int valueOf(Card c) {
 //params:
 //  c the card to be represented as a string
 string cardToString(Card c) {
-    string ret = "";
-    if (c.n == 1) ret += "Ace";
-    else if (c.n == 2) ret += "Two";
-    else if (c.n == 3) ret += "Three";
-    else if (c.n == 4) ret += "Four";
-    else if (c.n == 5) ret += "Five";
-    else if (c.n == 6) ret += "Six";
-    else if (c.n == 7) ret += "Seven";
-    else if (c.n == 8) ret += "Eight";
-    else if (c.n == 9) ret += "Nine";
-    else if (c.n == 10) ret += "Ten";
-    else if (c.n == 11) ret += "Jack";
-    else if (c.n == 12) ret += "Queen";
-    else if (c.n == 13) ret += "King";
-    else ret += "No number";
+    if (!(c.n || c.s)) return "Hidden card";
+    string ret;
+    switch (c.n) {
+    case 1: 
+        ret = "Ace";
+        break;
+    case 2:
+        ret = "Two";
+        break;
+    case 3:
+        ret = "Three";
+        break;
+    case 4:
+        ret = "Four";
+        break;
+    case 5:
+        ret = "Five";
+        break;
+    case 6:
+        ret = "Six";
+        break;
+    case 7:
+        ret = "Seven";
+        break;
+    case 8:
+        ret = "Eight";
+        break;
+    case 9:
+        ret = "Nine";
+        break;
+    case 10:
+        ret = "Ten";
+        break;
+    case 11:
+        ret = "Jack";
+        break;
+    case 12:
+        ret = "Queen";
+        break;
+    case 13:
+        ret = "King";
+        break;
+    default:
+        ret = "No number";
+    }
     ret += " of ";
-    if (c.s == SPADES) ret += "Spades";
-    else if (c.s == CLUBS) ret += "Clubs";
-    else if (c.s == HEARTS) ret += "Hearts";
-    else if (c.s == DIAMONDS) ret += "Diamonds";
-    else ret += "No suit";
+    switch (c.s) {
+    case SPADES:
+        ret += "Spades";
+        break;
+    case HEARTS:
+        ret += "Hearts";
+        break;
+    case CLUBS:
+        ret += "Clubs";
+        break;
+    case DIAMONDS:
+        ret += "Diamonds";
+        break;
+    default:
+        ret += "No suits";
+    }
     return ret;
 }
 
