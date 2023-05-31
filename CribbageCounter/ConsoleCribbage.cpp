@@ -1,4 +1,4 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <wchar.h>
 #include <Windows.h>
 
@@ -540,7 +540,7 @@ public:
 
 //prints a rectangle of size spaceSize, starting at spaceStart (inclusive) with filler chars
 //does not change color
-void fillSpace(char filler, COORD spaceStart, COORD spaceSize) {
+inline void fillSpace(char filler, COORD spaceStart, COORD spaceSize) {
     for (int i = 0; i < spaceSize.Y; i++) {
         movCursorTo(spaceStart.X, spaceStart.Y + i);
         for (int j = 0; j < spaceSize.X; j++) {
@@ -551,7 +551,7 @@ void fillSpace(char filler, COORD spaceStart, COORD spaceSize) {
 
 //creates a horizontal line of filler chars; spaceStart is inclusive
 //does not change color
-void fillLineHorizontal(char filler, COORD spaceStart, int len) {
+inline void fillLineHorizontal(char filler, COORD spaceStart, int len) {
     movCursorTo(spaceStart.X, spaceStart.Y);
     for (int i = 0; i < len; i++)
         printf("%c", filler);
@@ -559,7 +559,7 @@ void fillLineHorizontal(char filler, COORD spaceStart, int len) {
 
 //creates a vertical line of filler chars; spaceStart is inclusive
 //does not change color
-void fillLineVertical(char filler, COORD spaceStart, int len) {
+inline void fillLineVertical(char filler, COORD spaceStart, int len) {
     for (int i = 0; i < len; i++) {
         movCursorTo(spaceStart.X, spaceStart.Y + i);
         printf("%c", filler);
@@ -660,13 +660,13 @@ inline void renderCardTextual(COORD location, Card card) {
     cout << cardString;
 }
 
+//Do not use, call renderCard()
 //renders an overturned/hidden card at the given location
 //defines logic for creating a blank card
 inline void renderCardBack(COORD location) {
     COORD tmp;
     COORD tmpTwo;
-    cout << CARD_WHITE_BACKGROUND;
-    fillSpace(' ', location, cardSize);
+    //card back already rendered
     COORD len = cardSize;
     len.X -= 2;
     len.Y -= 2;
@@ -733,10 +733,12 @@ inline void renderCardBack(COORD location) {
     cout << DEFAULT_COLOR;
 }
 
+//Do not use, call renderCard()
 //renders a face card
 //predefined
 inline void renderFaceCard(COORD location, Card card) {
     //TODO
+    //card back already rendered
     switch (card.n) {
     case JACK:
 
@@ -750,12 +752,20 @@ inline void renderFaceCard(COORD location, Card card) {
     }
 }
 
+//fills the given array of length nSpots with relative locations on the card to put the symbols
+//returns true if successful, returns false is failed to fit (spotsLoc may be edited, but will not have any meaning)
+inline bool getCardSpotLocations(COORD* spotsLoc, int nSpots) {
+    //TODO
+}
+
 //renders a card
 void renderCard(COORD location, Card card) {
     if (!graphicalCardRepresentations) {
         renderCardTextual(location, card);
         return;
     }
+    cout << CARD_WHITE_BACKGROUND;
+    fillSpace(' ', location, cardSize);
     if (card == Card()) {//backside
         renderCardBack(location);
         return;
@@ -764,7 +774,21 @@ void renderCard(COORD location, Card card) {
         renderFaceCard(location, card);
         return;
     }
+
+    //render upper the card header (e.g. 6♥ in corner)
     //TODO
+
+    COORD* relLocs = new COORD[card.n];
+    //get positions to render chars at
+    if (getCardSpotLocations(relLocs, card.n)) {
+        //print in spots
+        //TODO
+    }
+
+    //possibly render lower card header
+    //TODO
+
+    delete(relLocs);
 }
 
 //renders just the board/score
