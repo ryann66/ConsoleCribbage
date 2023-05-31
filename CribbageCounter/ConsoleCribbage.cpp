@@ -139,37 +139,6 @@ bool EnableInput() {
     return true;
 }
 
-//sets the console size to the passed value
-//possibly redundant (unused)
-bool ResizeConsole() {
-    //Code resizes main console buffer to window size, removing scrolling
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-
-    // retrieve screen buffer info
-    CONSOLE_SCREEN_BUFFER_INFO scrBufferInfo;
-    GetConsoleScreenBufferInfo(hOut, &scrBufferInfo);
-
-    // current window size
-    short winWidth = scrBufferInfo.srWindow.Right - scrBufferInfo.srWindow.Left + 1;
-    short winHeight = scrBufferInfo.srWindow.Bottom - scrBufferInfo.srWindow.Top + 1;
-
-    // current screen buffer size
-    short scrBufferWidth = scrBufferInfo.dwSize.X;
-    short scrBufferHeight = scrBufferInfo.dwSize.Y;
-
-    // to remove the scrollbar, make sure the window height matches the screen buffer height
-    COORD newSize;
-    newSize.X = scrBufferWidth;
-    newSize.Y = winHeight;
-
-    // set the new screen buffer dimensions and return the size of the window (regardless of success)
-    if (SetConsoleScreenBufferSize(hOut, newSize)) {
-        consoleSize = newSize;
-        return true;
-    }
-    return false;
-}
-
 //sets the global consoleSize to the size of the console buffer
 void setConsoleSize() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -201,8 +170,7 @@ void waitConsoleResize() {
 }
 
 void useFullConsole() {
-    ResizeConsole();
-    //cout << CSI << "?1049h";
+    cout << CSI << "?1049h";
 }
 
 void useDefaultConsole() {
@@ -253,6 +221,7 @@ bool InitialConsoleSetup()
     return true;
 }
 
+//moves the cursor to the given position
 void movCursorTo(int x, int y) {
     printf("%s%i;%iH", CSI, y, x);
 }
@@ -673,7 +642,7 @@ screenTooSmall:
 }
 
 //renders a text based version of the card
-void renderCardTextual(COORD location, Card card) {
+inline void renderCardTextual(COORD location, Card card) {
     string cardString = cardToString(card);
     size_t endPrint = cardSize.X;
     while (cardString.size() > endPrint) {
@@ -687,7 +656,7 @@ void renderCardTextual(COORD location, Card card) {
 
 //renders an overturned/hidden card at the given location
 //defines logic for creating a blank card
-void renderCardBack(COORD location) {
+inline void renderCardBack(COORD location) {
     COORD tmp;
     COORD tmpTwo;
     cout << CARD_WHITE_BACKGROUND;
@@ -758,6 +727,23 @@ void renderCardBack(COORD location) {
     cout << DEFAULT_COLOR;
 }
 
+//renders a face card
+//predefined
+inline void renderFaceCard(COORD location, Card card) {
+    //TODO
+    switch (card.n) {
+    case JACK:
+
+        break;
+    case QUEEN:
+
+        break;
+    case KING:
+
+        break;
+    }
+}
+
 //renders a card
 void renderCard(COORD location, Card card) {
     if (!graphicalCardRepresentations) {
@@ -768,6 +754,11 @@ void renderCard(COORD location, Card card) {
         renderCardBack(location);
         return;
     }
+    if (card.n > 10) {//face card
+        renderFaceCard(location, card);
+        return;
+    }
+    //TODO
 }
 
 //renders just the board/score
