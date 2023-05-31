@@ -170,17 +170,17 @@ void waitConsoleResize() {
 }
 
 //Sets console into full screen program control mode
-void useFullConsole() {
+inline void useFullConsole() {
     cout << CSI << "?1049h";
 }
 
 //Sets the console to use the normal scrolling console mode
-void useDefaultConsole() {
+inline void useDefaultConsole() {
     cout << CSI << "?1049l";
 }
 
 //changes the console/window title to be the given title string
-void changeConsoleTitle(string title) {
+inline void changeConsoleTitle(string title) {
     cout << OSC << "0;" << title << ST;
 }
 
@@ -188,7 +188,7 @@ void changeConsoleTitle(string title) {
 //enables escape sequences
 //removes the scroll bar
 //returns false if setup failure
-bool InitialConsoleSetup()
+inline bool InitialConsoleSetup()
 {
     // Set output mode to handle virtual terminal sequences
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -221,11 +221,13 @@ bool InitialConsoleSetup()
 
     changeConsoleTitle(PROGRAM_NAME);
 
+    cout << CLEAR_CONSOLE;
+
     return true;
 }
 
 //moves the cursor to the given position
-void movCursorTo(int x, int y) {
+inline void movCursorTo(int x, int y) {
     printf("%s%i;%iH", CSI, y, x);
 }
 
@@ -318,14 +320,15 @@ struct Card {
 //params:
 //  c the card
 //returns the value of the card, less than or equal to 10
-int valueOf(Card c) {
+inline int valueOf(Card c) {
     return min((int)c.n, 10);
 }
 
 //returns a string representation of the given card
 //params:
 //  c the card to be represented as a string
-string cardToString(Card c) {
+//TODO inline in source code
+inline string cardToString(Card c) {
     if (!(c.n || c.s)) return "Hidden card";
     string ret;
     switch (c.n) {
@@ -1621,8 +1624,9 @@ int main()
     c.X = 10;
     c.Y = 10;
     setCardSize(MAX);
-    renderCardBack(c);
     cout << "\n\n\n";
+
+
 
     //srand((unsigned int)time(NULL));
 
