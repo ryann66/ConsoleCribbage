@@ -383,17 +383,17 @@ inline string cardToString(Card c) {
     }
     ret += " of ";
     switch (c.s) {
-    case SPADES:
-        ret += "Spades";
-        break;
     case HEARTS:
         ret += "Hearts";
+        break;
+    case DIAMONDS:
+        ret += "Diamonds";
         break;
     case CLUBS:
         ret += "Clubs";
         break;
-    case DIAMONDS:
-        ret += "Diamonds";
+    case SPADES:
+        ret += "Spades";
         break;
     default:
         ret += "No suits";
