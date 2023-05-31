@@ -169,14 +169,17 @@ void waitConsoleResize() {
     consoleSize.Y = Y;
 }
 
+//Sets console into full screen program control mode
 void useFullConsole() {
     cout << CSI << "?1049h";
 }
 
+//Sets the console to use the normal scrolling console mode
 void useDefaultConsole() {
     cout << CSI << "?1049l";
 }
 
+//changes the console/window title to be the given title string
 void changeConsoleTitle(string title) {
     cout << OSC << "0;" << title << ST;
 }
