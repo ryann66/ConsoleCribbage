@@ -23,6 +23,7 @@ using namespace::std;
 #define CLEAR_LINE CSI "2K"
 #define DEC_LINE_MODE ESC "(0"
 #define ASCII_MODE ESC "(B"
+#define CURSOR_BACK CSI "1D"
 //program definitions/literals
 #define PROGRAM_NAME "Console Cribbage"
 #define ENDGAME_MESSAGE_DELIM "\n"//endgame messages will get split over multiple at each spot where there is a delimeter
@@ -36,6 +37,12 @@ using namespace::std;
 //rendering/graphics definitions
 #define MESSAGE_OFFSET_X 6//number of characters over before rendering message
 #define CARD_BORDER_MARGIN 2//min space between elements
+#define HEARTS_CHAR L'♥'
+#define DIAMONDS_CHAR L'♦'
+#define CLUBS_CHAR L'♣'
+#define SPADES_CHAR L'♠'
+#define NOSUIT_CHAR 'X'//should never be rendered, default only
+#define NONUM_CHAR 'X'//should never be rendered, default only
 //card sizes should be even numbers to divide evenly
 #define MIN_CARD_X 4
 #define MIN_CARD_Y 4
@@ -394,6 +401,41 @@ inline string cardToString(Card c) {
     return ret;
 }
 
+//returns a char represetation of the number of the given card
+//returns a T for 10
+inline char cardToChar(Card c) {
+    switch (c.n) {
+    case 1:
+        return 'A';
+    case 2:
+        return '2';
+    case 3:
+        return '3';
+    case 4:
+        return '4';
+    case 5:
+        return '5';
+    case 6:
+        return '6';
+    case 7:
+        return '7';
+    case 8:
+        return '8';
+    case 9:
+        return '9';
+    case 10://do not use with 10
+        return 'T';
+    case 11:
+        return 'J';
+    case 12:
+        return 'Q';
+    case 13:
+        return 'K';
+    default:
+        return NONUM_CHAR;
+    }
+}
+
 //creates an array from the stack
 //params:
 //  s the stack of cards to be added to the array
@@ -738,7 +780,7 @@ inline void renderCardBack(COORD location) {
 //predefined
 inline void renderFaceCard(COORD location, Card card) {
     //TODO
-    //card back already rendered
+    //card base already rendered
     switch (card.n) {
     case JACK:
 
@@ -753,6 +795,8 @@ inline void renderFaceCard(COORD location, Card card) {
 }
 
 //fills the given array of length nSpots with relative locations on the card to put the symbols
+// will never put any spots on the edge
+// all coords are relative to the card
 //returns true if successful, returns false is failed to fit (spotsLoc may be edited, but will not have any meaning)
 inline bool getCardSpotLocations(COORD* spotsLoc, int nSpots) {
     //TODO
@@ -768,27 +812,73 @@ void renderCard(COORD location, Card card) {
     fillSpace(' ', location, cardSize);
     if (card == Card()) {//backside
         renderCardBack(location);
-        return;
-    }
-    if (card.n > 10) {//face card
-        renderFaceCard(location, card);
+        //renderCardBack() resets colors
         return;
     }
 
-    //render upper the card header (e.g. 6♥ in corner)
-    //TODO
+    //get char and set color for suite
+    wchar_t suitChar;
+    switch (card.s) {
+    case HEARTS:
+        suitChar = HEARTS_CHAR;
+        cout << CARD_RED;
+        break;
+    case DIAMONDS:
+        suitChar = DIAMONDS_CHAR;
+        cout << CARD_RED;
+        break;
+    case CLUBS:
+        suitChar = CLUBS_CHAR;
+        cout << CARD_BLACK;
+        break;
+    case SPADES:
+        suitChar = SPADES_CHAR;
+        cout << CARD_BLACK;
+        break;
+    }
+
+    //render upper (and possibly lower) card header(s) (e.g. 6♥ in corner)
+    char numChar = cardToChar(card);
+    movCursorTo(location.X, location.Y);
+    //special 10 logic
+    if (card.n == TEN) cout << "10";
+    else cout << numChar;
+    movCursorTo(location.X, location.Y + 1);
+    cout << suitChar;
+    if (cardSize.Y >= 4 && cardSize.X >= 4) {//render lower header
+        movCursorTo(location.X + cardSize.X - 1, location.Y + cardSize.Y - 1);
+        //special 10 logic
+        if (card.n == TEN) {
+            cout << CURSOR_BACK;
+            cout << "10";
+        }
+        else cout << numChar;
+        movCursorTo(location.X + cardSize.X - 1, location.Y + cardSize.Y - 2);
+        cout << suitChar;
+    }
+
+    if (card.n > 10) {//face card
+        cout << DEFAULT_COLOR;
+        renderFaceCard(location, card);
+        return;
+    }
 
     COORD* relLocs = new COORD[card.n];
     //get positions to render chars at
     if (getCardSpotLocations(relLocs, card.n)) {
         //print in spots
-        //TODO
+        COORD tmp;
+        for (int i = 0; i < card.n; i++) {
+            tmp = relLocs[i];
+            tmp.X += location.X;
+            tmp.Y += location.Y;
+            movCursorTo(tmp.X, tmp.Y);
+            cout << suitChar;
+        }
     }
 
-    //possibly render lower card header
-    //TODO
-
     delete(relLocs);
+    cout << DEFAULT_COLOR;
 }
 
 //renders just the board/score
