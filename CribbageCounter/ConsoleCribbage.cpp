@@ -81,7 +81,7 @@ bool graphicalCardRepresentations = true;
 //rendering variables
 COORD consoleSize;
 int messageBoxStart;//the line of the separator bar, message goes 2 lines below
-COORD cardSize;//move cardSize and csg into wrapper class (abstract fixCardSize()) TODO
+COORD cardSize;//move cardSize and csg into wrapper class (abstract fixCardSize() into a class method) TODO
 CardSizeGroup csg;
 COORD playerCardStart;
 COORD computerCardStart;
@@ -334,7 +334,6 @@ inline int valueOf(Card c) {
 //returns a string representation of the given card
 //params:
 //  c the card to be represented as a string
-//TODO inline in source code
 inline string cardToString(Card c) {
     if (!(c.n || c.s)) return "Hidden card";
     string ret;
@@ -1575,7 +1574,7 @@ readNew: if (go) s += "(go)";
     goto readNew;
 }
 
-//automatically selects a card to be played in the running (DEBUG: currently just routes to player card selector) TODO!
+//automatically selects a card to be played in the running
 //Warning: one of the cards in the hand must be playable! Failure will result infinite loop
 //params:
 //  hand the list of cards that the player has in hand
