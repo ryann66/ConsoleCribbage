@@ -797,9 +797,17 @@ inline void renderFaceCard(COORD location, Card card) {
 //fills the given array of length nSpots with relative locations on the card to put the symbols
 // will never put any spots on the edge
 // all coords are relative to the card
-//returns true if successful, returns false is failed to fit (spotsLoc may be edited, but will not have any meaning)
+//returns true if successful, returns false if failed to fit (spotsLoc may be edited, but will not have any meaning)
 inline bool getCardSpotLocations(COORD* spotsLoc, int nSpots) {
     //TODO
+    COORD size;
+    size.X = cardSize.X - 2;
+    size.Y = cardSize.Y - 2;
+    if (size.X < 3 || size.Y < 4) return false;
+    switch (nSpots) {
+
+    default: return false;
+    }
 }
 
 //renders a card
