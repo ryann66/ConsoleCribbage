@@ -1046,7 +1046,20 @@ void renderMessageBox() {
 //always shows numbers
 //cards will be numbered in their iteration order in the list (begin->end)
 void render(Board board, int nPlayerCards, Card* playerCards, int nComputerCards, Card* computerCards, Card cut) {
-    //TODO
+    getRenderLocations(nPlayerCards, nComputerCards);
+    COORD renderLoc = playerCardStart;
+    for (int i = 0; i < nPlayerCards; i++) {
+        renderCard(renderLoc, playerCards[i]);
+        renderLoc.X += playerCardXSpace;
+    }
+    renderLoc = computerCardStart;
+    for (int i = 0; i < nComputerCards; i++) {
+        if(computerCards) renderCard(renderLoc, computerCards[i]);
+        else renderCard(renderLoc, Card());
+        renderLoc.X += computerCardXSpace;
+    }
+    renderCard(cutCardStart, cut);
+    renderBoard(board);
 }
 
 //renders the current state of the running
