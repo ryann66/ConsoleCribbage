@@ -799,44 +799,131 @@ inline void renderFaceCard(COORD location, Card card) {
 // all coords are relative to the card
 //returns true if successful, returns false if failed to fit (spotsLoc may be edited, but will not have any meaning)
 inline bool getCardSpotLocations(COORD* spotsLoc, int nSpots) {
-    //TODO
+    //debug tmp
+    int origNSpotsVal = nSpots;
+
     COORD size;
     size.X = cardSize.X - 2;
     size.Y = cardSize.Y - 2;
     if (size.X < 3 || size.Y < 4) return false;
+    COORD center;
+    center.X = size.X / 2;
+    center.Y = size.Y / 2;
+    int shift;
+    COORD shiftC;
     switch (nSpots) {
     case 3:
         //two center spots, vertical
-        //no break
+        //no break, fallthrough into 1
+        shift = center.Y / 2;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y += shift;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y -= shift;
     case 1:
         //single center spot
+        nSpots--;
+        spotsLoc[nSpots] = center;
         break;
     case 2:
         //all spots
+        shift = center.Y / 2;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y += shift;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y -= shift;
         break;
     case 5:
         //single center spot
-        //no break
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        //no break, fallthrough into 4
     case 4: four:
         //all four spots
+        shiftC.X = center.X / 2;
+        shiftC.Y = center.Y / 2;
+        //q1
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].X += shiftC.X;
+        spotsLoc[nSpots].Y += shiftC.Y;
+        //q2
+        shiftC.X *= -1;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].X += shiftC.X;
+        spotsLoc[nSpots].Y += shiftC.Y;
+        //q3
+        shiftC.Y *= -1;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].X += shiftC.X;
+        spotsLoc[nSpots].Y += shiftC.Y;
+        //q4
+        shiftC.X *= -1;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].X += shiftC.X;
+        spotsLoc[nSpots].Y += shiftC.Y;
         break;
     case 7:
         //extra seven spot (center, uplifted)
+        shift = center.Y;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y -= shift;
         //no break
     case 6:
         //center two dots, horizontal
+        shift = center.X / 2;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].X += shift;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].X -= shift;
         goto four;
     case 9:
         //single center spot
-        //no break
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        //no break, fallthrough into eight
     case 8: eight:
         //all spots
+        //shiftC.X is the amount to shift to either side of centerline for each column
+        //shiftC.Y is the amount to shift down each time
+        shiftC.X = center.X / 2;
+        shiftC.Y = center.Y / 5;
+        for (int i = 1; i < 5; i++) {
+            nSpots--;
+            spotsLoc[nSpots] = center;
+            spotsLoc[nSpots].X -= shiftC.X;
+            spotsLoc[nSpots].Y = shiftC.Y * i;
+            nSpots--;
+            spotsLoc[nSpots] = center;
+            spotsLoc[nSpots].X += shiftC.X;
+            spotsLoc[nSpots].Y = shiftC.Y * i;
+        }
         break;
     case 10:
         //two center spots, vertical
+        shift = center.Y / 2;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y += shift;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y -= shift;
         goto eight;
     default: return false;
     }
+    //debug tmp
+    if (nSpots) fprintf(stderr, "nspots not 0, starting value: %i\n", origNSpotsVal);
+    return true;
 }
 
 //renders a card
