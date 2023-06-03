@@ -805,7 +805,36 @@ inline bool getCardSpotLocations(COORD* spotsLoc, int nSpots) {
     size.Y = cardSize.Y - 2;
     if (size.X < 3 || size.Y < 4) return false;
     switch (nSpots) {
-
+    case 3:
+        //two center spots, vertical
+        //no break
+    case 1:
+        //single center spot
+        break;
+    case 2:
+        //all spots
+        break;
+    case 5:
+        //single center spot
+        //no break
+    case 4: four:
+        //all four spots
+        break;
+    case 7:
+        //extra seven spot (center, uplifted)
+        //no break
+    case 6:
+        //center two dots, horizontal
+        goto four;
+    case 9:
+        //single center spot
+        //no break
+    case 8: eight:
+        //all spots
+        break;
+    case 10:
+        //two center spots, vertical
+        goto eight;
     default: return false;
     }
 }
