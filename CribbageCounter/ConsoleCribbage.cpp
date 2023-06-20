@@ -43,18 +43,12 @@ using namespace::std;
 #define SPADES_CHAR L'♠'
 #define NOSUIT_CHAR 'X'//should never be rendered, default only
 #define NONUM_CHAR 'X'//should never be rendered, default only
-//card sizes should be even numbers to divide evenly
-#define MIN_CARD_X 4
-#define MIN_CARD_Y 4
-#define MED_CARD_X 8
-#define MED_CARD_Y 8
-#define LRG_CARD_X 14
-#define LRG_CARD_Y 14
-#define MAX_CARD_X 20
-#define MAX_CARD_Y 20
+//card sizes should be odd numbers
+#define CARD_X 5
+#define CARD_Y 9
 #define MIN_BOARD_X 4
 #define MIN_BOARD_Y 2
-#define DEFAULT_COLOR CSI "0m"
+#define DEFAULT_COLORS CSI "0m"
 #define PLAYER_PEG_COLOR CSI "92m"
 #define COMPUTER_PEG_COLOR CSI "94m"
 #define BOARD_COLOR_BACKGROUND CSI "48;2;210;180;140m"
@@ -67,22 +61,11 @@ using namespace::std;
 #define CARD_ACCENT_BACKGROUND CSI "46m" //color to be used in card back
 #define CARD_ACCENT CSI "36m"
 
-//enumeration for classifying card sizes and changing rendering styles
-//smaller card sizes may render less detail!
-enum CardSizeGroup {
-    MIN,
-    MEDIUM,
-    LARGE,
-    MAX
-};
-
 //settings
 bool graphicalCardRepresentations = true;
 //rendering variables
 COORD consoleSize;
 int messageBoxStart;//the line of the separator bar, message goes 2 lines below
-COORD cardSize;//move cardSize and csg into wrapper class (abstract fixCardSize() into a class method) TODO
-CardSizeGroup csg;
 COORD playerCardStart;
 COORD computerCardStart;
 int playerCardXSpace;
@@ -246,7 +229,7 @@ inline void movCursorTo(int x, int y) {
 //if 0 lines printed, function failed to print anything
 int printCenterAllign(string message, unsigned int x, unsigned int y) {//TODO: maxlen linesplitting feature is broken?
     if (x > consoleSize.X || y > consoleSize.Y) return 0;
-    int len = message.length();
+    size_t len = message.length();
     int lines = 0;
     int maxLen = min(x + 1, consoleSize.X - len - 1);
     if (len > maxLen) {
@@ -607,92 +590,46 @@ inline void fillLineVertical(char filler, COORD spaceStart, int len) {
     }
 }
 
-//Conforms card to best possible cardSizeGroup (csg)
-//cannot increase size of cards
-//returns true if succeeded, returns false if no possible solution was found
-bool fixCardSize() {
-    if (cardSize.X >= MAX_CARD_X && cardSize.Y >= MAX_CARD_Y) {
-        cardSize.X = MAX_CARD_X;
-        cardSize.Y = MAX_CARD_Y;
-        csg = MAX;
-        return true;
-    }
-    if (cardSize.X >= LRG_CARD_X && cardSize.Y >= LRG_CARD_Y) {
-        cardSize.X = LRG_CARD_X;
-        cardSize.Y = LRG_CARD_Y;
-        csg = LARGE;
-        return true;
-    }
-    if (cardSize.X >= MED_CARD_X && cardSize.Y >= MED_CARD_Y) {
-        cardSize.X = MED_CARD_X;
-        cardSize.Y = MED_CARD_Y;
-        csg = MEDIUM;
-        return true;
-    }
-    if (cardSize.X >= MIN_CARD_X && cardSize.Y >= MIN_CARD_Y) {
-        cardSize.X = MIN_CARD_X;
-        cardSize.Y = MIN_CARD_Y;
-        csg = MIN;
-        return true;
-    }
-    return false;
-}
-
 //determines the location and size of the elements on the screen
 //sets values to the global variables (see renderingVariables section)
-void getRenderLocations(int nPlayerCards, int nComputerCards) {
+void getRenderLocations(int nPlayerCards, int nComputerCards) {//TODO: ensure function works right
 start:
     setConsoleSize();
-    int width;
-    int height = consoleSize.Y - 4;
-    messageBoxStart = height;
-    if (height < 3 * MIN_CARD_Y || consoleSize.X < MIN_CARD_X) goto screenTooSmall;//don't even bother calculating
+    messageBoxStart = consoleSize.Y - 4;
 
-    //(preliminary) Y size of all elements
-    height -= 4 * CARD_BORDER_MARGIN;
-    cardSize.Y = height / 3;
-    boardSize.Y = cardSize.Y + height % 3;
-
-    //(preliminary) X size of all elements
-    width = nPlayerCards ^ nComputerCards ?
-        min(consoleSize.X - (1 + nComputerCards) * CARD_BORDER_MARGIN, consoleSize.X - (1 + nPlayerCards) * CARD_BORDER_MARGIN) :
-        consoleSize.X - (1 + nComputerCards) * CARD_BORDER_MARGIN;
-    cardSize.X = width / max(nPlayerCards, nComputerCards);
-
-    //finalize element size
-    height = cardSize.Y;
-    if (!fixCardSize())goto screenTooSmall;
-    boardSize.X = consoleSize.X - 3 * CARD_BORDER_MARGIN - cardSize.X;
-
-    //establish positions for elements
-    computerCardStart.X = (consoleSize.X - nComputerCards * cardSize.X) / (nComputerCards + 1);
-    computerCardXSpace = cardSize.X + computerCardStart.X;
-    playerCardStart.X = (consoleSize.X - nPlayerCards * cardSize.X) / (nPlayerCards + 1);
-    playerCardXSpace = cardSize.X + playerCardStart.X;
-    computerCardStart.Y = CARD_BORDER_MARGIN + ((cardSize.Y - height) / 2);
-    boardStart.X = CARD_BORDER_MARGIN;
-    boardStart.Y = height + 2 * CARD_BORDER_MARGIN;
-    playerCardStart.Y = boardStart.Y + boardSize.Y + ((cardSize.Y - height) / 2) + ((cardSize.Y - height) & 0x1);
-    cutCardStart.X = boardStart.X + boardSize.X + CARD_BORDER_MARGIN;
-    cutCardStart.Y = boardStart.Y + (boardSize.Y - cardSize.Y) / 2;
+    //size of board
+    boardSize.Y = CARD_Y + (messageBoxStart - (4 * CARD_BORDER_MARGIN)) % 3;
+    boardSize.X = consoleSize.X - 3 * CARD_BORDER_MARGIN - CARD_X;
 
     //validate that all sizes are large enough
-    if (cardSize.X < MIN_CARD_X || cardSize.Y < MIN_CARD_Y || cardSize.X > MAX_CARD_X || 
-        cardSize.Y > MAX_CARD_Y || boardSize.X < MIN_BOARD_X || boardSize.Y < MIN_BOARD_Y) goto screenTooSmall;
+    if (boardSize.X < MIN_BOARD_X || boardSize.Y < MIN_BOARD_Y) {
+        //routine for dealing with a console too small to render game
+        movCursorTo(0, 0);
+        printf("Console window too small; enlarge to continue");
+        waitConsoleResize();
+        goto start;
+    }
+
+    //establish positions for elements
+    computerCardStart.X = (consoleSize.X - nComputerCards * CARD_X) / (nComputerCards + 1);
+    computerCardXSpace = CARD_X + computerCardStart.X;
+    playerCardStart.X = (consoleSize.X - nPlayerCards * CARD_X) / (nPlayerCards + 1);
+    playerCardXSpace = CARD_X + playerCardStart.X;
+    boardStart.X = CARD_BORDER_MARGIN;
+    boardStart.Y = CARD_Y + 2 * CARD_BORDER_MARGIN;
+    computerCardStart.Y = CARD_BORDER_MARGIN;
+    playerCardStart.Y = boardStart.Y + boardSize.Y + CARD_BORDER_MARGIN;
+    cutCardStart.X = boardStart.X + boardSize.X + CARD_BORDER_MARGIN;
+    cutCardStart.Y = boardStart.Y + (boardSize.Y - CARD_Y) / 2;
 
     return;
-screenTooSmall:
-    movCursorTo(0, 0);
-    printf("Console window too small; enlarge to continue");
-    waitConsoleResize();
-    goto start;
 }
 
 //Do not use, call renderCard()
 //renders a text based version of the card
 inline void renderCardTextual(COORD location, Card card) {
     string cardString = cardToString(card);
-    size_t endPrint = cardSize.X;
+    size_t endPrint = CARD_X;
     while (cardString.size() > endPrint) {
         movCursorTo(location.X, location.Y);
         cout << cardString.erase(0, endPrint);
@@ -706,73 +643,21 @@ inline void renderCardTextual(COORD location, Card card) {
 //renders an overturned/hidden card at the given location
 //defines logic for creating a blank card
 inline void renderCardBack(COORD location) {
-    COORD tmp;
-    COORD tmpTwo;
     //card back already rendered
-    COORD len = cardSize;
-    len.X -= 2;
-    len.Y -= 2;
+    cout << CARD_WHITE_BACKGROUND;
+    cout << CARD_ACCENT;
+
+    //TODO
+
+    COORD len;
+    len.X = CARD_X - 2;
+    len.Y = CARD_Y - 2;
     location.X++;
     location.Y++;
-    cout << CARD_ACCENT_BACKGROUND;
-    cout << CARD_ACCENT;
-    switch (csg) {
-    case MIN:
-        fillSpace(' ', location, len);
-        break;
-    case LARGE:
-        cout << DEC_LINE_MODE;
-        cout << CARD_WHITE_BACKGROUND;
-        tmp.X = location.X + (len.X / 2) - 1;
-        tmp.Y = location.Y + (len.Y / 2) - 1;
-        //draw two vertical lines
-        tmpTwo.X = tmp.X;
-        tmpTwo.Y = location.Y;
-        fillLineVertical('x', tmpTwo, len.Y);
-        tmpTwo.X++;
-        fillLineVertical('x', tmpTwo, len.Y);
-        //draw two horizontal lines
-        tmpTwo.Y = tmp.Y;
-        tmpTwo.X = location.X;
-        fillLineHorizontal('q', tmpTwo, len.X);
-        tmpTwo.Y++;
-        fillLineHorizontal('q', tmpTwo, len.X);
-        //draw center embossment
-        tmpTwo.X = 2;
-        tmpTwo.Y = 2;
-        fillSpace('n', tmp, tmpTwo);
-        cout << ASCII_MODE;
-        cout << CARD_ACCENT_BACKGROUND;
-    case MEDIUM:
-        //ringing border
-    border:
-        fillLineHorizontal(' ', location, len.X);
-        fillLineVertical(' ', location, len.Y);
-        location.X += (len.X - 1);
-        fillLineVertical(' ', location, len.Y);
-        location.X -= (len.X - 1);
-        location.Y += (len.Y - 1);
-        fillLineHorizontal(' ', location, len.X);
-        location.Y -= (len.Y - 1);
-        break;
-    case MAX:
-        tmp.X = location.X + (len.X / 2) - 2;
-        tmp.Y = location.Y + (len.Y / 2) - 2;
-        //draw two vertical lines
-        tmpTwo.X = tmp.X;
-        tmpTwo.Y = location.Y;
-        fillLineVertical(' ', tmpTwo, len.Y);
-        tmpTwo.X += 3;
-        fillLineVertical(' ', tmpTwo, len.Y);
-        //draw two horizontal lines
-        tmpTwo.Y = tmp.Y;
-        tmpTwo.X = location.X;
-        fillLineHorizontal(' ', tmpTwo, len.X);
-        tmpTwo.Y += 3;
-        fillLineHorizontal(' ', tmpTwo, len.X);
-        goto border;
-    }
-    cout << DEFAULT_COLOR;
+
+    
+
+    cout << DEFAULT_COLORS;
 }
 
 //Do not use, call renderCard()
@@ -803,8 +688,8 @@ inline bool getCardSpotLocations(COORD* spotsLoc, int nSpots) {
     int origNSpotsVal = nSpots;
 
     COORD size;
-    size.X = cardSize.X - 2;
-    size.Y = cardSize.Y - 2;
+    size.X = CARD_X - 2;
+    size.Y = CARD_Y - 2;
     if (size.X < 3 || size.Y < 4) return false;
     COORD center;
     center.X = size.X / 2;
@@ -933,6 +818,9 @@ void renderCard(COORD location, Card card) {
         return;
     }
     cout << CARD_WHITE_BACKGROUND;
+    COORD cardSize;
+    cardSize.X = CARD_X;
+    cardSize.Y = CARD_Y;
     fillSpace(' ', location, cardSize);
     if (card == Card()) {//backside
         renderCardBack(location);
@@ -959,6 +847,8 @@ void renderCard(COORD location, Card card) {
         suitChar = SPADES_CHAR;
         cout << CARD_BLACK;
         break;
+    default:
+        suitChar = NOSUIT_CHAR;
     }
 
     //render upper (and possibly lower) card header(s) (e.g. 6♥ in corner)
@@ -969,20 +859,18 @@ void renderCard(COORD location, Card card) {
     else cout << numChar;
     movCursorTo(location.X, location.Y + 1);
     cout << suitChar;
-    if (cardSize.Y >= 4 && cardSize.X >= 4) {//render lower header
-        movCursorTo(location.X + cardSize.X - 1, location.Y + cardSize.Y - 1);
-        //special 10 logic
-        if (card.n == TEN) {
-            cout << CURSOR_BACK;
-            cout << "10";
-        }
-        else cout << numChar;
-        movCursorTo(location.X + cardSize.X - 1, location.Y + cardSize.Y - 2);
-        cout << suitChar;
+    movCursorTo(location.X + CARD_X - 1, location.Y + CARD_Y - 1);
+    //special 10 logic
+    if (card.n == TEN) {
+        cout << CURSOR_BACK;
+        cout << "10";
     }
+    else cout << numChar;
+    movCursorTo(location.X + CARD_X - 1, location.Y + CARD_Y - 2);
+    cout << suitChar;
 
     if (card.n > 10) {//face card
-        cout << DEFAULT_COLOR;
+        cout << DEFAULT_COLORS;
         renderFaceCard(location, card);
         return;
     }
@@ -1001,8 +889,8 @@ void renderCard(COORD location, Card card) {
         }
     }
 
-    delete(relLocs);
-    cout << DEFAULT_COLOR;
+    delete[] relLocs;
+    cout << DEFAULT_COLORS;
 }
 
 //renders just the board/score
@@ -1657,7 +1545,7 @@ bool playGame() {
         }
         delete[] playerCards;
         playerCards = temp;
-        delete(discardCards);
+        delete[] discardCards;
         count = 0;
         discardCards = aiDiscard(computerCards, board.playerDeal());
         temp = new Card[4];
@@ -1673,7 +1561,7 @@ bool playGame() {
         }
         delete[] computerCards;
         computerCards = temp;
-        delete(discardCards);
+        delete[] discardCards;
 
         //nibs/cut (also show discard happened)
         render(board, 4, playerCards, 4, NULL, cut);
@@ -1844,25 +1732,6 @@ bool playGame() {
     return board.playerWin();
 }
 
-//tmp
-void setCardSize(CardSizeGroup group) {
-    switch (group) {
-    case MIN:
-        cardSize.X = cardSize.Y = 4;
-        break;
-    case MEDIUM:
-        cardSize.X = cardSize.Y = 8;
-        break;
-    case LARGE:
-        cardSize.X = cardSize.Y = 14;
-        break;
-    case MAX:
-        cardSize.X = cardSize.Y = 20;
-        break;
-    }
-    fixCardSize();
-}
-
 //Play cribbage on the console against the computer
 int main()
 {
@@ -1874,7 +1743,6 @@ int main()
     COORD c;
     c.X = 10;
     c.Y = 10;
-    setCardSize(MAX);
     cout << "\n\n\n";
 
 
