@@ -689,6 +689,7 @@ screenTooSmall:
     goto start;
 }
 
+//Do not use, call renderCard()
 //renders a text based version of the card
 inline void renderCardTextual(COORD location, Card card) {
     string cardString = cardToString(card);
@@ -776,7 +777,7 @@ inline void renderCardBack(COORD location) {
 }
 
 //Do not use, call renderCard()
-//renders a face card
+//renders a face card, no action for non-face cards
 //predefined
 inline void renderFaceCard(COORD location, Card card) {
     //TODO
