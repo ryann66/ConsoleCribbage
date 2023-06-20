@@ -81,7 +81,7 @@ bool graphicalCardRepresentations = true;
 //rendering variables
 COORD consoleSize;
 int messageBoxStart;//the line of the separator bar, message goes 2 lines below
-COORD cardSize;//move cardSize and csg into wrapper class (abstract fixCardSize()) TODO
+COORD cardSize;//move cardSize and csg into wrapper class (abstract fixCardSize() into a class method) TODO
 CardSizeGroup csg;
 COORD playerCardStart;
 COORD computerCardStart;
@@ -334,7 +334,6 @@ inline int valueOf(Card c) {
 //returns a string representation of the given card
 //params:
 //  c the card to be represented as a string
-//TODO inline in source code
 inline string cardToString(Card c) {
     if (!(c.n || c.s)) return "Hidden card";
     string ret;
@@ -798,9 +797,133 @@ inline void renderFaceCard(COORD location, Card card) {
 //fills the given array of length nSpots with relative locations on the card to put the symbols
 // will never put any spots on the edge
 // all coords are relative to the card
-//returns true if successful, returns false is failed to fit (spotsLoc may be edited, but will not have any meaning)
+//returns true if successful, returns false if failed to fit (spotsLoc may be edited, but will not have any meaning)
 inline bool getCardSpotLocations(COORD* spotsLoc, int nSpots) {
-    //TODO
+    //debug tmp
+    int origNSpotsVal = nSpots;
+
+    COORD size;
+    size.X = cardSize.X - 2;
+    size.Y = cardSize.Y - 2;
+    if (size.X < 3 || size.Y < 4) return false;
+    COORD center;
+    center.X = size.X / 2;
+    center.Y = size.Y / 2;
+    int shift;
+    COORD shiftC;
+    switch (nSpots) {
+    case 3:
+        //two center spots, vertical
+        //no break, fallthrough into 1
+        shift = center.Y / 2;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y += shift;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y -= shift;
+    case 1:
+        //single center spot
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        break;
+    case 2:
+        //all spots
+        shift = center.Y / 2;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y += shift;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y -= shift;
+        break;
+    case 5:
+        //single center spot
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        //no break, fallthrough into 4
+    case 4: four:
+        //all four spots
+        shiftC.X = center.X / 2;
+        shiftC.Y = center.Y / 2;
+        //q1
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].X += shiftC.X;
+        spotsLoc[nSpots].Y += shiftC.Y;
+        //q2
+        shiftC.X *= -1;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].X += shiftC.X;
+        spotsLoc[nSpots].Y += shiftC.Y;
+        //q3
+        shiftC.Y *= -1;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].X += shiftC.X;
+        spotsLoc[nSpots].Y += shiftC.Y;
+        //q4
+        shiftC.X *= -1;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].X += shiftC.X;
+        spotsLoc[nSpots].Y += shiftC.Y;
+        break;
+    case 7:
+        //extra seven spot (center, uplifted)
+        shift = center.Y;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y -= shift;
+        //no break
+    case 6:
+        //center two dots, horizontal
+        shift = center.X / 2;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].X += shift;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].X -= shift;
+        goto four;
+    case 9:
+        //single center spot
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        //no break, fallthrough into eight
+    case 8: eight:
+        //all spots
+        //shiftC.X is the amount to shift to either side of centerline for each column
+        //shiftC.Y is the amount to shift down each time
+        shiftC.X = center.X / 2;
+        shiftC.Y = center.Y / 5;
+        for (int i = 1; i < 5; i++) {
+            nSpots--;
+            spotsLoc[nSpots] = center;
+            spotsLoc[nSpots].X -= shiftC.X;
+            spotsLoc[nSpots].Y = shiftC.Y * i;
+            nSpots--;
+            spotsLoc[nSpots] = center;
+            spotsLoc[nSpots].X += shiftC.X;
+            spotsLoc[nSpots].Y = shiftC.Y * i;
+        }
+        break;
+    case 10:
+        //two center spots, vertical
+        shift = center.Y / 2;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y += shift;
+        nSpots--;
+        spotsLoc[nSpots] = center;
+        spotsLoc[nSpots].Y -= shift;
+        goto eight;
+    default: return false;
+    }
+    //debug tmp
+    if (nSpots) fprintf(stderr, "nspots not 0, starting value: %i\n", origNSpotsVal);
+    return true;
 }
 
 //renders a card
@@ -924,7 +1047,20 @@ void renderMessageBox() {
 //always shows numbers
 //cards will be numbered in their iteration order in the list (begin->end)
 void render(Board board, int nPlayerCards, Card* playerCards, int nComputerCards, Card* computerCards, Card cut) {
-    //TODO
+    getRenderLocations(nPlayerCards, nComputerCards);
+    COORD renderLoc = playerCardStart;
+    for (int i = 0; i < nPlayerCards; i++) {
+        renderCard(renderLoc, playerCards[i]);
+        renderLoc.X += playerCardXSpace;
+    }
+    renderLoc = computerCardStart;
+    for (int i = 0; i < nComputerCards; i++) {
+        if(computerCards) renderCard(renderLoc, computerCards[i]);
+        else renderCard(renderLoc, Card());
+        renderLoc.X += computerCardXSpace;
+    }
+    renderCard(cutCardStart, cut);
+    renderBoard(board);
 }
 
 //renders the current state of the running
@@ -1452,7 +1588,7 @@ readNew: if (go) s += "(go)";
     goto readNew;
 }
 
-//automatically selects a card to be played in the running (DEBUG: currently just routes to player card selector) TODO!
+//automatically selects a card to be played in the running
 //Warning: one of the cards in the hand must be playable! Failure will result infinite loop
 //params:
 //  hand the list of cards that the player has in hand
