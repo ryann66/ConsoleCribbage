@@ -161,7 +161,7 @@ void setConsoleSize() {
 
 //waits until the console is enlarged in either direction
 //pushes the larger size to consoleSize
-//does not guarantee any size to be achieved, just that the area is larger than it was
+//does not guarantee any size to be achieved, just that the window is larger than it was in either direction
 void waitConsoleResize() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_SCREEN_BUFFER_INFO consoleInfo;
