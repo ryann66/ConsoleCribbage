@@ -37,14 +37,14 @@ using namespace::std;
 //rendering/graphics definitions
 #define MESSAGE_OFFSET_X 6//number of characters over before rendering message
 #define CARD_BORDER_MARGIN 2//min space between elements
-#define HEARTS_CHAR L'♥'
-#define DIAMONDS_CHAR L'♦'
-#define CLUBS_CHAR L'♣'
-#define SPADES_CHAR L'♠'
+#define HEARTS_CHAR 'H'//L'♥'
+#define DIAMONDS_CHAR 'D'//L'♦'
+#define CLUBS_CHAR 'C'//L'♣'
+#define SPADES_CHAR 'S'//L'♠'
 #define NOSUIT_CHAR 'X'//should never be rendered, default only
 #define NONUM_CHAR 'X'//should never be rendered, default only
 //card sizes should be odd numbers
-#define CARD_X 5
+#define CARD_X 9
 #define CARD_Y 9
 #define MIN_BOARD_X 4
 #define MIN_BOARD_Y 2
@@ -75,7 +75,7 @@ COORD boardStart;
 COORD boardSize;
 
 //helpful documentation on Windows console:
-//  https://learn.microsoft.com/en-us/windows/console
+//  https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
 
 //hides user input from the user, pretending it didn't happen
 //returns true if successful
@@ -172,6 +172,10 @@ inline void useDefaultConsole() {
 //changes the console/window title to be the given title string
 inline void changeConsoleTitle(string title) {
     cout << OSC << "0;" << title << ST;
+}
+
+inline void clearConsole() {
+    cout << CLEAR_CONSOLE;
 }
 
 //formats the console correctly
@@ -828,8 +832,9 @@ void renderCard(COORD location, Card card) {
         return;
     }
 
+    //TODO: get console to recognize wide chars.
     //get char and set color for suite
-    wchar_t suitChar;
+    char suitChar;
     switch (card.s) {
     case HEARTS:
         suitChar = HEARTS_CHAR;
@@ -1740,19 +1745,14 @@ int main()
         return 1;
     }
 
-    COORD c;
-    c.X = 10;
-    c.Y = 10;
-    cout << "\n\n\n";
 
 
+    srand((unsigned int)time(NULL));
 
-    //srand((unsigned int)time(NULL));
+    //intended later implementation of a menu
+    playGame();
 
-    ////intended later implementation of a menu
-    //playGame();
-
-    //renderClear();
-    //useDefaultConsole();
-    //return 0;
+    clearConsole();
+    useDefaultConsole();
+    return 0;
 }
